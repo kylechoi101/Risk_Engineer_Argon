@@ -12,7 +12,9 @@ const state = {
   activeNode: null,
   scene: null,
   rankings: [],
-  result: null
+  result: null,
+  timeline: 0,
+  timelinePlaying: false
 };
 
 const compactMoney = (value) => {
@@ -150,6 +152,17 @@ function renderMetrics() {
   renderFixes();
 }
 
+function updateTimeline({timeline = 0, playing = false}) {
+  state.timeline = timeline;
+  state.timelinePlaying = playing;
+  const phase = timeline < 1 ? 'IMPACT INCOMING' : timeline < 3.4 ? 'SEISMIC SHOCK' : timeline < 6.3 ? 'WATER RUN-UP' : timeline < 9.8 ? 'CASCADE SPREAD' : 'AFTERMATH';
+  $('eventPhase').textContent = phase;
+  $('eventProgress').style.width = `${Math.min(100, timeline * 10)}%`;
+  const button = $('eventPlayBtn');
+  button.textContent = playing ? 'Ⅱ PAUSE EVENT' : timeline >= 10 ? '↺ REPLAY EVENT' : '▶ RESUME EVENT';
+  button.setAttribute('aria-label', playing ? 'Pause disaster animation' : timeline >= 10 ? 'Replay disaster animation' : 'Resume disaster animation');
+}
+
 function recalculate(reanalyze = false) {
   if (reanalyze) analyzeFixes();
   state.result = runSimulation({
@@ -161,6 +174,11 @@ function recalculate(reanalyze = false) {
     iterations: 4096
   });
   renderMetrics();
+  if (state.scene) {
+    state.scene.setScenario({magnitude:state.magnitude,surge:state.surge});
+    state.scene.replayDisaster();
+    updateTimeline({timeline:0,playing:true});
+  }
 }
 
 function toggleFix(id) {
@@ -209,6 +227,19 @@ function bindControls() {
   $('zoomIn').addEventListener('click', () => state.scene?.zoom(1.25));
   $('zoomOut').addEventListener('click', () => state.scene?.zoom(.8));
   $('resetView').addEventListener('click', () => state.scene?.resetView());
+  $('eventPlayBtn').addEventListener('click', () => {
+    if (!state.scene) return;
+    if (state.timelinePlaying) {
+      state.scene.pauseDisaster();
+      updateTimeline({timeline:state.timeline,playing:false});
+    } else if (state.timeline >= 10) {
+      state.scene.replayDisaster();
+      updateTimeline({timeline:0,playing:true});
+    } else {
+      state.scene.playDisaster();
+      updateTimeline({timeline:state.timeline,playing:true});
+    }
+  });
 }
 
 async function start() {
@@ -219,8 +250,12 @@ async function start() {
     const data = await response.json();
     state.scene = await createScene($('scene'), data);
     state.scene.onNodeSelect((id) => {state.activeNode=id;renderNodes();});
+    state.scene.onTimelineUpdate(updateTimeline);
     $('renderMode').textContent = `${state.scene.mode} RENDERER · ${data.buildings.length.toLocaleString()} BUILDINGS`;
+    state.scene.setScenario({magnitude:state.magnitude,surge:state.surge});
     state.scene.setRisk(state.result.mitigated.nodeFailureProbs, state.activeNode);
+    state.scene.replayDisaster();
+    updateTimeline({timeline:0,playing:true});
   } catch (error) {
     console.error(error);
     $('sceneFallback').hidden=false;

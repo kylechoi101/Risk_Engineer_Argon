@@ -15,6 +15,8 @@ Run `npm run check` for the deterministic simulation and data checks, then `npm 
 
 The scene contains 3,759 building footprints with LiDAR-derived median heights from [DataSF Building Footprints](https://data.sf.gov/d/ynuv-fyni) and 1,101 active segments from [DataSF Streets – Active and Retired](https://data.sf.gov/d/3psu-pn9h), collected October 25, 2026. The source query selects a rectangle around the Ferry Building and the build script retains footprints within roughly one mile. `public/data/scene.json` contains projected, simplified local coordinates. The San Francisco coastline, Ferry Building tower, Bay Bridge span, and infrastructure failure node markers are schematic visual aids. No private facility data is included.
 
+The map uses procedural canvas textures for land, moving bay water, and building facades. The replayable 10-second event sequence shows seismic rings and camera shake, an advancing coastal flood sheet, and probability-weighted failure beacons. These effects are illustrative visualizations; they are not a physical earthquake, hydrodynamic, or structural response solver.
+
 To refresh the public data snapshot:
 
 ```bash
@@ -30,4 +32,4 @@ All asset identities except the Ferry Building/Bay Bridge context, node location
 
 ## Gemini usage
 
-The locally configured `gemini` CLI with `gemini-4-argon` was used to generate the initial Monte Carlo cascade module and propose the geodata-based Three.js/WebGPU scene design. The scene was adapted and verified against the actual DataSF coordinate system and browser rendering. Prompt text is retained in `gemini-simulation-prompt.txt` and `gemini-render-prompt.txt`. No Gemini credentials are included in the site or sent to visitors.
+The locally configured `gemini` CLI with `gemini-4-argon` was used to generate the initial Monte Carlo cascade module, propose the geodata-based Three.js/WebGPU scene design, and create the procedural texture and animation module. The scene was adapted and verified against the actual DataSF coordinate system and browser rendering. Prompt text is retained in `gemini-simulation-prompt.txt`, `gemini-render-prompt.txt`, and `gemini-effects-prompt.txt`. No Gemini credentials are included in the site or sent to visitors.

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WebGPURenderer } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { NODES } from './simulation.js';
+import { createDisasterEffects, makeSurfaceTextures } from './effects.js';
 
 const NODE_POSITIONS = {
   seawall: [40, 350], substations: [-440, -100], fuel_terminal: [330, -780],
@@ -54,6 +55,7 @@ export async function createScene(container, data) {
   const warmth = new THREE.DirectionalLight(0xfb8d69, 1.3);
   warmth.position.set(1000, 460, 850);
   scene.add(warmth);
+  const surfaces = makeSurfaceTextures();
 
   // The coastline is a schematic envelope; city buildings and streets below use actual DataSF coordinates.
   const coast = [[-1700,1800],[-1350,1400],[-910,1000],[-520,650],[-200,360],[90,0],[245,-300],[445,-700],[490,-1100],[555,-1800]];
@@ -64,14 +66,14 @@ export async function createScene(container, data) {
   landShape.closePath();
   const landGeo = new THREE.ExtrudeGeometry(landShape,{depth:5,bevelEnabled:false});
   landGeo.rotateX(-Math.PI/2);
-  const land = new THREE.Mesh(landGeo,new THREE.MeshStandardMaterial({color:COLOR.land,roughness:.94,metalness:.06}));
+  const land = new THREE.Mesh(landGeo,new THREE.MeshStandardMaterial({map:surfaces.land,color:0xb8c9ca,roughness:.96,metalness:.04}));
   scene.add(land);
   const shorePoints = coast.map(([x,n])=>new THREE.Vector3(x,5.5,-n));
   polyline(shorePoints,new THREE.LineBasicMaterial({color:0x7cddd9,transparent:true,opacity:.83}),scene);
   const waterGeometry = new THREE.PlaneGeometry(6500,6500,42,42);
   waterGeometry.rotateX(-Math.PI/2);
   const waterPositions = waterGeometry.attributes.position;
-  const water = new THREE.Mesh(waterGeometry,new THREE.MeshStandardMaterial({color:COLOR.water,emissive:0x082534,roughness:.34,metalness:.58,transparent:true,opacity:.95,side:THREE.DoubleSide}));
+  const water = new THREE.Mesh(waterGeometry,new THREE.MeshStandardMaterial({map:surfaces.sea,color:0x79b9cf,emissive:0x082534,roughness:.32,metalness:.54,transparent:true,opacity:.95,side:THREE.DoubleSide}));
   water.position.y=-4;
   scene.add(water);
   const grid = new THREE.GridHelper(5200,46,0x235768,0x1b4554);
@@ -96,7 +98,7 @@ export async function createScene(container, data) {
     if(!heightGroups.has(bucket))heightGroups.set(bucket,[]);
     heightGroups.get(bucket).push(shape);
   }
-  const buildingMaterials=[0x183a49,0x1e5367,0x277289,0x2c91a2].map(color=>new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.14,roughness:.55,metalness:.28}));
+  const buildingMaterials=[0x638b99,0x79a7b2,0x89b9c5,0xa4cbd3].map(color=>new THREE.MeshStandardMaterial({map:surfaces.facade,color,emissive:color,emissiveIntensity:.08,roughness:.58,metalness:.22}));
   for(const [height,shapes] of heightGroups){
     for(let i=0;i<shapes.length;i+=260){
       try{
@@ -181,8 +183,10 @@ export async function createScene(container, data) {
       cascadeLinks.push({line,sourceId,weight,level:.06});
     }
   }
+  const effects=createDisasterEffects({scene,coastline:coast,nodePositions:NODE_POSITIONS});
 
-  let selectedId=null,selectionHandler=null,cameraMove=null,disposed=false;
+  let selectedId=null,selectionHandler=null,timelineHandler=null,cameraMove=null,disposed=false;
+  let currentScenario={magnitude:7.2,surge:2.2},lastTimelineFrame=-1;
   const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
   const onClick=(event)=>{
     const rect=renderer.domElement.getBoundingClientRect();
@@ -195,6 +199,7 @@ export async function createScene(container, data) {
   let currentRisk={};
   function setRisk(probabilities={},selected=selectedId){
     currentRisk=probabilities;selectedId=selected;
+    effects.setScenario({...currentScenario,probabilities});
     for(const node of nodes.values()){
       node.prob=Math.max(0,Math.min(1,Number(probabilities[node.id])||0));
       const color=new THREE.Color().lerpColors(new THREE.Color(COLOR.low),new THREE.Color(COLOR.high),Math.sqrt(node.prob));
@@ -209,6 +214,13 @@ export async function createScene(container, data) {
       link.line.material.color.setHex(sourceRisk>.35?0xff855d:0x65cad0);
     }
   }
+  function setScenario({magnitude=7.2,surge=2.2}={}){
+    currentScenario={magnitude,surge};
+    effects.setScenario({...currentScenario,probabilities:currentRisk});
+  }
+  function replayDisaster(){effects.replay();}
+  function pauseDisaster(){effects.pause();}
+  function playDisaster(){effects.play();}
   function moveCamera(position,target){cameraMove={fromPosition:camera.position.clone(),toPosition:position,fromTarget:controls.target.clone(),toTarget:target,t:0};}
   function focusNode(id){const node=nodes.get(id);if(!node)return;selectedId=id;setRisk(currentRisk,id);moveCamera(node.position.clone().add(new THREE.Vector3(300,230,360)),node.position.clone().add(new THREE.Vector3(0,-25,0)));}
   function resetView(){moveCamera(homePosition.clone(),homeTarget.clone());}
@@ -220,8 +232,10 @@ export async function createScene(container, data) {
   function animate(){
     if(disposed)return;
     const delta=Math.min(clock.getDelta(),.08),elapsed=clock.elapsedTime;
+    const effectFrame=effects.update(delta,elapsed);
     for(let i=0;i<waterPositions.count;i++)waterPositions.setY(i,Math.sin(waterPositions.getX(i)*.011+elapsed*.65)*1.7+Math.cos(waterPositions.getZ(i)*.009+elapsed*.82)*1.2);
     waterPositions.needsUpdate=true;
+    surfaces.sea.offset.set((elapsed*.012)%1,(elapsed*.007)%1);
     for(const node of nodes.values()){
       node.core.rotation.y+=delta*(1+node.prob*3);
       node.wire.rotation.y-=delta*.7;
@@ -233,9 +247,15 @@ export async function createScene(container, data) {
     }
     for(const link of cascadeLinks)link.line.material.opacity=link.level*(.82+.18*Math.sin(elapsed*2.5));
     if(cameraMove){cameraMove.t=Math.min(1,cameraMove.t+delta*1.55);const f=1-(1-cameraMove.t)**3;camera.position.lerpVectors(cameraMove.fromPosition,cameraMove.toPosition,f);controls.target.lerpVectors(cameraMove.fromTarget,cameraMove.toTarget,f);if(cameraMove.t>=1)cameraMove=null;}
-    controls.update();renderer.render(scene,camera);
+    controls.update();
+    const shake=effectFrame.cameraShake;
+    if(shake){camera.position.x+=Math.sin(elapsed*67)*shake*.42;camera.position.y+=Math.cos(elapsed*73)*shake*.22;camera.position.z+=Math.sin(elapsed*79)*shake*.42;}
+    renderer.render(scene,camera);
+    if(shake){camera.position.x-=Math.sin(elapsed*67)*shake*.42;camera.position.y-=Math.cos(elapsed*73)*shake*.22;camera.position.z-=Math.sin(elapsed*79)*shake*.42;}
+    const frame=Math.floor(effectFrame.timeline*10);
+    if(frame!==lastTimelineFrame){lastTimelineFrame=frame;timelineHandler?.(effectFrame);}
   }
   renderer.setAnimationLoop(animate);
-  function dispose(){disposed=true;renderer.setAnimationLoop(null);observer.disconnect();renderer.domElement.removeEventListener('click',onClick);controls.dispose();scene.traverse(item=>{item.geometry?.dispose();if(item.material){(Array.isArray(item.material)?item.material:[item.material]).forEach(m=>m.dispose());}});renderer.dispose();renderer.domElement.remove();}
-  return {mode,setRisk,focusNode,resetView,zoom,dispose,onNodeSelect(handler){selectionHandler=handler;}};
+  function dispose(){disposed=true;renderer.setAnimationLoop(null);observer.disconnect();renderer.domElement.removeEventListener('click',onClick);controls.dispose();effects.dispose();scene.traverse(item=>{item.geometry?.dispose();if(item.material){(Array.isArray(item.material)?item.material:[item.material]).forEach(m=>m.dispose());}});Object.values(surfaces).forEach(texture=>texture.dispose());renderer.dispose();renderer.domElement.remove();}
+  return {mode,setRisk,setScenario,replayDisaster,pauseDisaster,playDisaster,focusNode,resetView,zoom,dispose,onNodeSelect(handler){selectionHandler=handler;},onTimelineUpdate(handler){timelineHandler=handler;}};
 }
