@@ -8,6 +8,7 @@ from argon.engine.cascade import Scenario, cvar99, simulate_case, tail_index
 from argon.engine.catalog import NODES, Fix, Node
 
 BOOTSTRAP_SAMPLES = 200
+BOOTSTRAP_BUDGET = BOOTSTRAP_SAMPLES * 4096  # cap resampled draws per fix for large runs
 
 
 def _tail_means(sorted_rows: np.ndarray) -> np.ndarray:
@@ -25,7 +26,8 @@ def score_fixes(
     s = scenario.clamped()
     base = simulate_case(s, (), nodes).losses
     n = len(base)
-    resample = np.random.default_rng(s.seed).integers(0, n, size=(BOOTSTRAP_SAMPLES, n))
+    samples = max(50, min(BOOTSTRAP_SAMPLES, BOOTSTRAP_BUDGET // n))
+    resample = np.random.default_rng(s.seed).integers(0, n, size=(samples, n))
     base_boot = _tail_means(np.sort(base[resample], axis=1))
     base_sorted = np.sort(base)
     idx99 = tail_index(n)
