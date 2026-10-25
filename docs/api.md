@@ -44,8 +44,9 @@ illustrative assumptions, not engineering estimates.
 | `seed`, `iterations` | Default 42 and 4096. Iterations 100 to 50000. |
 | `max_fixes` | Most fixes Gemini may propose. 1 to 30, default 30. |
 
-After parsing, the scenario needs an `earthquake` hazard, or the request fails with 422. With
-no water hazard, the water level is MHHW.
+Without a `prompt`, the request needs an `earthquake` hazard or it fails with 422. With a
+prompt, if neither the prompt nor `hazards` names an earthquake, the stream sends one `error`
+event (stage `scenario`) and ends. With no water hazard, the water level is MHHW.
 
 `scenario: {"magnitude": 7.2, "king_tide_ft": 7.0}` is accepted as shorthand for the two hazards
 above.
@@ -72,12 +73,17 @@ Events, in order:
 | `data.layer` | 4 times | `layer` (`footprints`, `tall_buildings`, `soft_story`, `seismic_zones`), `source` (`snapshot` or `live`), `count`, `geojson` (FeatureCollection, lon/lat) |
 | `exposure` | once | `building_count`, `seismic_zone_buildings`, `soft_story_open`, `tall_building_count`, `low_ground_count`, `seismic_scale`, `coastal_scale` |
 | `sim.baseline` | once | `metrics`, `buildings`, `network`, `trace` |
-| `agent.text` | many | `delta`: a chunk of Gemini's narrative |
 | `agent.fixes` | once | `source` (`gemini`, `recorded` or `fallback`), `proposed`, `accepted`, `rejected`: `[{"id", "reason"}]` |
+| `agent.text` | many | `delta`: a chunk of Gemini's narrative about the scenario and the proposed fixes |
 | `fix.ranked` | once per kept fix | ranked fix (see below), in rank order |
 | `sim.mitigated` | once | `bundle`, `result`, `buildings`, `trace` |
-| `run.completed` | last | `run_id`, `dropped_fixes`: `[{"id", "reason"}]`, `timings_ms` |
-| `error` | on failure | `stage`, `message`, `fallback_used` (bool). The stream continues when a fallback was used, otherwise it ends. |
+| `run.completed` | last | `run_id`, `dropped_fixes`: `[{"id", "reason"}]`, `timings_ms` (per stage) |
+| `error` | on failure | `stage` (`scenario`, `data`, `exposure`, `baseline`, `agent.fixes`, `agent.text`, `scoring`, `bundle`, `store`), `message`, `fallback_used` (bool). The stream continues when a fallback was used, otherwise it ends. |
+
+Fallbacks: a failed Gemini prompt parse uses the regex parser. Failed fix proposals use a
+recorded reply, or the built-in 20 fixes when no recording matches (`source: "fallback"`). A
+failed narrative uses a recorded or template narrative. A failed live DataSF fetch uses the
+snapshot.
 
 `scenario`:
 
@@ -121,15 +127,17 @@ CVaR₀.₉₉. Mitigated traces replay the same iteration with fixes applied.
   "iteration": 1873, "loss_m": 1231.4,
   "events": [
     {"node_id": "seawall", "t_s": 1.0, "failed": true, "blocked": false, "cause": "hazard", "upstream": []},
-    {"node_id": "substations", "t_s": 2.2, "failed": true, "blocked": false, "cause": "cascade", "upstream": ["seawall"]}
+    {"node_id": "substations", "t_s": 2.2, "failed": true, "blocked": false, "cause": "cascade", "upstream": ["seawall"]},
+    {"node_id": "water_pump", "t_s": 4.6, "failed": false, "blocked": false, "cause": null, "upstream": ["substations", "fuel_terminal"]}
   ]
 }
 ```
 
 There is one event per node. `failed` is the outcome in this case. `blocked` is true only in
 a mitigated trace, for a node that failed in the baseline but not here. `t_s` is a suggested
-animation time: 1.0 s plus 1.2 s per level of failed upstream chain. `cause` is `hazard` or
-`cascade`, and `upstream` lists the failed dependencies.
+animation time: 1.0 s plus 1.2 s per level of failed upstream chain. For a node that failed,
+`cause` is `hazard` or `cascade`. For a node that survived, `cause` is `null` and `t_s` is when
+the upstream failures reached it. `upstream` lists the failed dependencies.
 
 Ranked fix (`fix.ranked`):
 

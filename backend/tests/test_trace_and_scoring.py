@@ -31,7 +31,8 @@ def test_baseline_trace_explains_each_cascade(baseline):
     for e in trace["events"]:
         assert not e["blocked"]
         assert set(e["upstream"]) <= failed and set(e["upstream"]) <= set(deps[e["node_id"]])
-        assert e["cause"] == ("cascade" if e["upstream"] else "hazard")
+        expected = ("cascade" if e["upstream"] else "hazard") if e["failed"] else None
+        assert e["cause"] == expected
         assert e["t_s"] >= 1.0
 
 

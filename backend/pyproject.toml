@@ -7,6 +7,7 @@ dependencies = [
     "fastapi[standard]>=0.115",
     "numpy>=2.0",
     "google-genai>=1.0",
+    "python-dotenv>=1.0",
 ]
 
 [dependency-groups]
@@ -17,7 +18,7 @@ dev = [
 ]
 
 [tool.fastapi]
-entrypoint = "argon.api:app"
+entrypoint = "argon.main:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

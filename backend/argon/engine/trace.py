@@ -32,7 +32,7 @@ def cascade_trace(
             "t_s": round(FIRST_FAILURE_S + STEP_S * depth[node.id], 2),
             "failed": bool(failed[i]),
             "blocked": bool(baseline is not None and baseline.failed[iteration, i] and not failed[i]),
-            "cause": "cascade" if upstream else "hazard",
+            "cause": None if not failed[i] else "cascade" if upstream else "hazard",
             "upstream": upstream,
         })
     return {"iteration": iteration, "loss_m": round(float(run.losses[iteration]), 2),
