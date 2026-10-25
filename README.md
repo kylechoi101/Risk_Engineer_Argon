@@ -1,15 +1,50 @@
 # Argon Risk — SF Waterfront Simulator
 
-Interactive concept demo for compound earthquake and coastal flooding risk near the San Francisco Ferry Building. The app is a static Vite site. Its simulation runs entirely in the browser and requires no API key at runtime.
+Interactive concept demo for compound earthquake and coastal flooding risk near the San Francisco Ferry Building. The frontend is a Vite site. The Python backend in `backend/` runs the Monte Carlo model, streams the analysis over SSE, and bakes the contract data files into `public/data/`.
 
-## Run
+## Start the demo
+
+You need Node 20+, Python 3.12+ and [`uv`](https://docs.astral.sh/uv/).
+
+**1. Set the API key (optional).** Copy the template and put your Gemini key in it:
+
+```bash
+cp backend/.env.example backend/.env
+# then edit backend/.env:  GEMINI_API_KEY=your-key
+```
+
+`backend/.env` is gitignored, so never commit the key. Without a key, the demo still runs fully offline: it replays recordings from `backend/recordings/`, or falls back to the built-in fixes and a template narrative. To record live Gemini replies for an offline demo, also set `ARGON_RECORD=1` and run the demo scenario once.
+
+**2. Start the backend** (terminal 1):
+
+```bash
+cd backend
+uv sync
+uv run fastapi dev        # http://localhost:8000 (API docs at /docs)
+```
+
+**3. Bake the demo data** (once, or after changing the scenario):
+
+```bash
+cd backend
+uv run python scripts/bake_contract.py    # writes public/data/*.json and checks the invariants
+```
+
+**4. Start the frontend** (terminal 2, repo root):
 
 ```bash
 npm install
-npm run dev
+npm run dev               # http://127.0.0.1:5173
 ```
 
-Run `npm run check` for the deterministic simulation and data checks, then `npm run build` for a production bundle.
+To check the backend is live: `curl localhost:8000/api/health`. To watch a streamed run:
+
+```bash
+curl -N -X POST localhost:8000/api/runs -H 'content-type: application/json' \
+  -d '{"radius_mi": 1.0, "scenario": {"magnitude": 7.2, "king_tide_ft": 7.0}}'
+```
+
+Tests: `cd backend && uv run pytest`, and `npm run check` for the browser data checks. API contracts: [`docs/api.md`](docs/api.md) (live stream) and [`docs/contract-v1.1.md`](docs/contract-v1.1.md) (baked files).
 
 ## Cinematic video
 
