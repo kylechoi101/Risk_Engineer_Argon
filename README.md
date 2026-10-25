@@ -1,47 +1,73 @@
-# Argon Risk — SF Waterfront Simulator
+# San Francisco Waterfront Disaster Simulator (1-Mile District)
 
-Interactive concept demo for compound earthquake and coastal flooding risk near the San Francisco Ferry Building. The app is a static Vite site. Its simulation runs entirely in the browser and requires no API key at runtime.
+Frontend player for the San Francisco Waterfront 1-mile radius earthquake + tsunami/extreme wave surge simulator, centered on the **San Francisco Ferry Building** (`37.7955° N, 122.3937° W`).
 
-## Run
+---
+
+## 1. Quick Start (Run Instructions)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Run `npm run check` for the deterministic simulation and data checks, then `npm run build` for a production bundle.
+Open the local URL printed by Vite (default: `http://localhost:5173`).
 
-## Cinematic video
+### Phase 1 Keyboard Shortcuts & Controls
+- **`P`** (or click **Play Simulation**): Runs the **20-second GPU Damage-Shader Proof** across all 2,439 buildings in a single draw call (ground shake, height-dependent building sway, damage color ramp `0..4`, tilt/sink on state 3, vertical squash-and-sink + instanced dust puffs on state 4, and an advancing Bay wave surge with blue-teal flood tint).
+- **`D`** (or click **Debug (D)**): Toggles the Debug Overlay showing live **FPS**, **Draw Calls**, **Triangle Count**, **Building Count**, **3D Axes Helper** at the Ferry Building origin `(0, 0, 0)`, and a **Wireframe Toggle**.
+- **`R`** (or click **Reset**): Resets the simulation clock and restores all buildings to undamaged state `0`.
+- **Camera Mode button** (top-right of 3D panel): Switches between **Idle Drift** (slow high-oblique panorama over the 1-mile district) and **Free Orbit** (mouse drag to orbit, scroll to zoom, right-drag to pan).
+- **Hover any building in 3D**: Displays a floating tooltip with `Building #<id>`, landmark name (if applicable), current damage state `0..4`, height, ground elevation, and footprint area.
 
-The [Ferry Building tsunami video](public/videos/hackathon-window-to-tsunami-extended.mp4) is a fictional, AI-generated 13.8-second clip made with Gemini Omni Flash. It starts in the hackathon room, moves toward the Bay Bridge, turns toward the Ferry Building, and follows the wave moving from the bay onto shore. The clip is a visual concept, not a physical hazard simulation.
+---
 
-## Data and scene
+## 2. Coordinate System (Single Shared Frame)
 
-The scene contains 3,759 building footprints with LiDAR-derived median heights from [DataSF Building Footprints](https://data.sf.gov/d/ynuv-fyni) and 1,101 active segments from [DataSF Streets – Active and Retired](https://data.sf.gov/d/3psu-pn9h), collected October 25, 2026. The source query selects a rectangle around the Ferry Building and the build script retains footprints within roughly one mile. `public/data/scene.json` contains projected, simplified local coordinates. The San Francisco coastline, Ferry Building tower, Bay Bridge span, and infrastructure failure node markers are schematic visual aids. No private facility data is included.
+Defined in [`src/config/coordinates.ts`](src/config/coordinates.ts):
+- **Origin `(0, 0, 0)`**: San Francisco Ferry Building (`37.7955° N, -122.3937° W`), sea level = `0 m`.
+- **Radius**: `1 mile = 1609 meters`.
+- **Local East-North-Up (ENU) -> Three.js Mapping** (`1 unit = 1 meter`):
+  - `+X` = **East** (meters)
+  - `+Y` = **Up** (elevation in meters above sea level)
+  - `-Z` = **North** (so `+Z` = South)
 
-The scene also includes 145 records from [DataSF Tall Building Inventory](https://data.sf.gov/d/5kya-mfst), 200 mapped properties from the [DataSF Soft-Story source table](https://data.sf.gov/d/beah-shgi) (the [map view](https://data.sf.gov/d/jwdp-cqyc) is a visualization, not a data table), and seven intersecting polygons from [DataSF Seismic Hazard Zones](https://data.sf.gov/d/re79-p8j5) (the [map view](https://data.sf.gov/d/7ahv-68ap) is also a visualization). Of the mapped soft-story properties within the one-mile circle, 13 were **not** marked "Work Complete" in the public snapshot. The seismic polygons overlap the centers of 1,155 scene building footprints. The zone layer does not provide per-polygon liquefaction probability, so overlap means mapped seismic hazard only.
+All modules (terrain, merged buildings mesh, Embarcadero waterfront/piers, Bay Bridge western span, water surface shader, camera rig, and inundation grid lookup) use this single coordinate system.
 
-The [NOAA tide datum metadata for station 9414290](https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9414290/datums.json?units=metric) gives MHHW = 3.602 m and NAVD88 = 1.804 m relative to station datum, so MHHW = **1.798 m NAVD88**. The water slider adds a scenario increment to MHHW; the app counts building footprints whose DataSF `gnd_min_m` is at or below that elevation. This is a low-ground screening count, not a flood prediction: it has no hydraulic connectivity, seawall crest elevations, time history, wave dynamics, or bathymetry.
+---
 
-The map uses procedural canvas textures for land, moving bay water, and building facades. The replayable 10-second event sequence shows seismic rings and camera shake, an advancing coastal flood sheet, and probability-weighted failure beacons. These effects are illustrative visualizations; they are not a physical earthquake, hydrodynamic, or structural response solver.
+## 3. District Bake Pipeline & Data Sources
 
-To refresh the public data snapshot:
+Scripts live in [`/tools`](tools/):
+1. [`tools/fetch_real_data.py`](tools/fetch_real_data.py): Fetches public geospatial datasets for the 1-mile bounding box around the Ferry Building and caches them in `tools/cache/`:
+   - **DataSF Building Footprints** (`https://data.sfgov.org/resource/ynuv-fyni.geojson`): Building footprint polygons, `hgt_median_m` (height), and `gnd_min_m` (ground elevation).
+   - **DataSF Tall Building Inventory** (`https://data.sfgov.org/resource/5kya-mfst.json`): Supplemental height/structural metadata for downtown towers.
+   - **DataSF Street Centerlines** (`https://data.sfgov.org/resource/3psu-pn9h.geojson`): Active street network.
+   - **NOAA CO-OPS Tidal Datums** (`https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9414290/datums.json?units=metric`): Station 9414290 (San Francisco) MHHW/NAVD88 datum.
+2. [`tools/bake_district.mjs`](tools/bake_district.mjs): Compiles the 3D district into `/public/models/district.glb` and `/public/data/buildings.json`.
 
-```bash
-python3 scripts/fetch-data.py
-python3 scripts/build-scene.py
-```
+### Regenerating the District
+- **Offline / Procedural Placeholder Mode** (currently active in `/public/models/district.glb` and `/public/data/buildings.json`):
+  ```bash
+  npm run bake:placeholder
+  ```
+- **Real DataSF Footprints Mode** (run locally on a machine with internet access to `data.sfgov.org`):
+  ```bash
+  npm run bake:real
+  ```
 
-## Model
+---
 
-The browser engine evaluates 4,096 deterministic Monte Carlo draws. It combines earthquake magnitude and a 0–4 m coastal water-level proxy with a dependency graph of eight illustrative infrastructure nodes. A failed upstream node raises downstream failure probability. The baseline and selected-retrofit cases use the same random draws, which makes changes stable as the user toggles fixes. Outputs include modeled expected loss, expected fatalities, 99th percentile loss (VaR₀.₉₉), and mean loss in the highest 1% tail (CVaR₀.₉₉). The 20 intervention cards show standalone scenario benefit, CapEx, and a benefit-to-cost multiple. The budget button uses a greedy benefit-to-cost selection heuristic.
+## 4. Schema Locations & Swapping in Real Backend Files
 
-The public data now enter the browser model through two **bounded heuristic exposure multipliers**. Seismic intensity is adjusted from the share of building centers in the seismic zone, tall-building inventory count, and soft-story properties not marked complete. Coastal intensity is adjusted from the low-ground building count at the selected water level. The formulas are in `src/app.js`, with caps in `src/simulation.js`; they are not site-calibrated fragility functions or loss estimates.
+TypeScript interfaces for the backend data contract are defined in [`src/types/dataContract.ts`](src/types/dataContract.ts) and validated in [`src/utils/validators.ts`](src/utils/validators.ts):
 
-All asset identities except the Ferry Building/Bay Bridge context, node locations, dependency weights, fragility curves, losses, casualty factors, and intervention costs/effects are **illustrative assumptions**. The tsunami preset uses water-level run-up as a proxy; it does not model wave propagation or arrival time. The model has not been calibrated to site-specific records and must not be used for engineering or emergency decisions. Hazard context is informed by [USGS liquefaction guidance](https://www.usgs.gov/programs/earthquake-hazards/science/san-francisco-bay-area-liquefaction-hazard-maps) and the [Port of San Francisco seismic and flood overview](https://www.sfport.com/wrp/seismic-flood-101).
+| File Path | Schema Type | Validator Function | Purpose |
+| :--- | :--- | :--- | :--- |
+| `/public/data/buildings.json` | `BuildingsMetadataSchema` | `validateBuildingsMetadata()` | Per-building `id`, `centroid` (ENU m), `footprint_area_m2`, `height_m`, `ground_elevation_m`, and `data_quality` |
+| `/public/data/scenario.json` | `ScenarioSchema` | `validateScenario()` | Preset earthquake magnitude, duration, shake envelope, and base64 Float32 wave inundation grids (`arrival_s`, `peak_depth_m`, `recede_s`) |
+| `/public/data/buildings_damage.json` | `BuildingsDamageSchema` | `validateDamageAndSummary()` | Parallel arrays indexed by `building_ids[i]`: `archetype_idx`, `zone_idx`, `onset_s`, `dominant_mode`, and `outcomes[fixBitmask]` |
+| `/public/data/summary.json` | `SummarySchema` | `validateDamageAndSummary()` | District `zones`, `archetypes`, `fixes` (with bit positions), `by_combo` loss/collapse summaries, `weak_point_groups`, and `hotspots` |
+| `/public/data/pipeline_events.json` | `PipelineEventsSchema` | `validatePipelineEvents()` | Recorded Argon multi-agent event stream replayed by `RecordedPipelineAdapter` (or swapped via `PipelineEventAdapter` for live SSE) |
 
-The requested 3DEP/CUDEM terrain and bathymetry, USGS ShakeMap scenario grids, Assessor values, FEMA NSI, seawall engineering reports, utility topology, and hazmat inventories are not connected. The current DataSF footprint elevations provide a simpler ground-level input. There is no validated facility-level forecast of casualties or damage.
-
-## Gemini usage
-
-The locally configured `gemini` CLI with `gemini-4-argon` was used to generate the initial Monte Carlo cascade module, propose the geodata-based Three.js/WebGPU scene design, and create the procedural texture and animation module. The scene was adapted and verified against the actual DataSF coordinate system and browser rendering. Prompt text is retained in `gemini-simulation-prompt.txt`, `gemini-render-prompt.txt`, and `gemini-effects-prompt.txt`. No Gemini credentials are included in the site or sent to visitors.
+To swap in the real backend files from the Argon backend team, drop `scenario.json`, `buildings_damage.json`, `summary.json`, and `pipeline_events.json` directly into `/public/data/`.
