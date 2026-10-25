@@ -4,11 +4,14 @@ import { WeakPointsCard } from './components/ui/WeakPointsCard';
 import { ArchitecturalViewCard } from './components/ui/ArchitecturalViewCard';
 import { useSimulationStore } from './store/useSimulationStore';
 import { validateBuildingsMetadata } from './utils/validators';
+import { loadContract } from './data/loadContract';
 import './styles/app.css';
 
 export function App() {
   const setBuildingsMeta = useSimulationStore((s) => s.setBuildingsMeta);
-  const startShaderProof = useSimulationStore((s) => s.startShaderProof);
+  const startSimulation = useSimulationStore((s) => s.startSimulation);
+  const setContract = useSimulationStore((s) => s.setContract);
+  const setContractError = useSimulationStore((s) => s.setContractError);
   const toggleDebug = useSimulationStore((s) => s.toggleDebug);
   const resetSimulation = useSimulationStore((s) => s.resetSimulation);
 
@@ -25,6 +28,13 @@ export function App() {
         const result = validateBuildingsMetadata(raw);
         if (result.valid && result.data) {
           setBuildingsMeta(result.data);
+          // Then the backend's damage, summary, scenario and pipeline files, keyed to these ids.
+          loadContract(result.data)
+            .then((contract) => !cancelled && setContract(contract))
+            .catch((err: Error) => {
+              console.warn('[Contract] Using the Phase 1 shader proof:', err.message);
+              if (!cancelled) setContractError(err.message);
+            });
         } else {
           console.error('[Validator] buildings.json validation failed:', result.errors);
         }
@@ -36,7 +46,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [setBuildingsMeta]);
+  }, [setBuildingsMeta, setContract, setContractError]);
 
   // Keyboard shortcuts:
   //   P -> Run 20-second Damage-Shader Proof across all buildings
@@ -53,7 +63,7 @@ export function App() {
       const key = e.key.toLowerCase();
       if (key === 'p') {
         e.preventDefault();
-        startShaderProof();
+        startSimulation();
       } else if (key === 'd') {
         e.preventDefault();
         toggleDebug();
@@ -65,7 +75,7 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [startShaderProof, toggleDebug, resetSimulation]);
+  }, [startSimulation, toggleDebug, resetSimulation]);
 
   return (
     <main className="app-shell">

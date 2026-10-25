@@ -62,7 +62,7 @@ def main() -> int:
 
         # 2. DataSF Tall Buildings Inventory (5kya-mfst) for supplemental structural material/height
         q_tall = urlencode({
-            "$select": "polygon,name,address,height_ft,stories_above_grade,year_built,structural_types",
+            "$select": "polygon,name,address,height_ft,stories_above_grade,building_code_year,structural_material,structural_types",
             "$where": f"within_box(polygon,{BOX_STR})",
             "$limit": "2000"
         })

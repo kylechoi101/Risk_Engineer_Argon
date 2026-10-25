@@ -35,6 +35,8 @@ export function SimulationPanel() {
   const shaderProofPayload = useSimulationStore((s) => s.shaderProofPayload);
 
   const startShaderProof = useSimulationStore((s) => s.startShaderProof);
+  const startSimulation = useSimulationStore((s) => s.startSimulation);
+  const contract = useSimulationStore((s) => s.contract);
   const resetSimulation = useSimulationStore((s) => s.resetSimulation);
   const setCameraMode = useSimulationStore((s) => s.setCameraMode);
   const toggleDebug = useSimulationStore((s) => s.toggleDebug);
@@ -227,13 +229,15 @@ export function SimulationPanel() {
             <button
               type="button"
               className="play-sim-button"
-              onClick={startShaderProof}
-              title="Phase 1: Triggers the 20s full-district shader proof (also triggered with key P)"
+              onClick={startSimulation}
+              title={contract ? 'Play the Argon scenario (key P)' : 'Phase 1: Triggers the 20s full-district shader proof (also triggered with key P)'}
             >
               <Play size={16} fill="currentColor" />
               <span>
                 {phase === 'playing'
-                  ? 'Replaying Shader Proof...'
+                  ? contract
+                    ? 'Playing Scenario...'
+                    : 'Replaying Shader Proof...'
                   : phase === 'analysis_done'
                     ? 'Replay Simulation'
                     : 'Play Simulation'}
@@ -261,7 +265,9 @@ export function SimulationPanel() {
 
           <div className="playback-hint-row">
             <span>
-              {isShaderProof
+              {contract
+                ? `${contract.scenario.label}: M${contract.scenario.earthquake.magnitude.toFixed(1)} earthquake, then the wave at ${contract.scenario.wave.arrival_s}s • ${contract.damage.building_ids.length.toLocaleString()} buildings • Toggle fixes to see the mitigated outcome instantly`
+                : isShaderProof
                 ? 'Running Phase 1 GPU Damage-Shader Proof (1 draw call for all 2,439 buildings)'
                 : 'Phase 1 Ready • Press [P] or click Play Simulation to test 20s district shader proof • Press [D] for Debug'}
             </span>

@@ -6,6 +6,7 @@ import {
   type PipelineStatus,
 } from '../../config/constants';
 import { useSimulationStore } from '../../store/useSimulationStore';
+import { pipelineAtClock } from '../../data/contractPayload';
 
 const SHORT_NODE_LABELS: Record<PipelineNodeId, string> = {
   gov_data: 'Gov Data Retrieval',
@@ -24,10 +25,16 @@ export function ArchitecturalViewCard() {
   const phase = useSimulationStore((s) => s.phase);
   const clock = useSimulationStore((s) => s.clock);
   const isShaderProof = useSimulationStore((s) => s.isShaderProof);
+  const duration = useSimulationStore((s) => s.duration);
+  const contract = useSimulationStore((s) => s.contract);
+  const replay = contract
+    ? pipelineAtClock(contract.pipeline, phase === 'analysis_done' ? duration : clock, duration)
+    : null;
 
   // Derive visual node status (queued in idle; progressive during 20s shader proof)
   const getNodeStatus = (idx: number): PipelineStatus => {
     if (phase === 'idle') return 'queued';
+    if (replay) return replay.status[PIPELINE_NODES[idx]];
     if (phase === 'analysis_done') return 'done';
     if (isShaderProof) {
       const stepDuration = 20 / PIPELINE_NODES.length;
@@ -54,7 +61,9 @@ export function ArchitecturalViewCard() {
           {phase === 'idle'
             ? 'Pipeline Standby'
             : phase === 'playing'
-              ? 'Shader Proof Active'
+              ? contract
+                ? 'Replaying Argon Run'
+                : 'Shader Proof Active'
               : 'Run Complete'}
         </span>
       </header>
@@ -112,6 +121,16 @@ export function ArchitecturalViewCard() {
                 Press <strong>[P]</strong> or click <strong>Play Simulation</strong> to test
                 the 20-second GPU damage-shader proof.
               </div>
+            </div>
+          ) : replay ? (
+            <div className="log-placeholder-message">
+              {replay.visible.map((e, i) => (
+                <div key={i} className={`log-line ${e.status === 'queued' ? 'muted' : ''}`}>
+                  [{e.t_s.toFixed(1).padStart(4, '0')}s]{' '}
+                  <span className="log-node-tag">[{e.node}]</span> {e.status === 'done' ? '✓ ' : ''}
+                  {e.message}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="log-placeholder-message">

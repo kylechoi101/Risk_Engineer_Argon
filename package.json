@@ -10,7 +10,8 @@
     "bake:placeholder": "node tools/bake_district.mjs --placeholder",
     "bake:real": "python3 tools/fetch_real_data.py && node tools/bake_district.mjs",
     "bake:damage": "cd backend && uv run python scripts/bake_contract.py",
-    "demo": "npm run build && cd backend && uv run fastapi run --port 8000"
+    "demo": "npm run build && cd backend && uv run fastapi run --port 8000",
+    "test": "vitest run"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
@@ -28,6 +29,7 @@
     "@types/three": "^0.169.0",
     "@vitejs/plugin-react": "^4.3.3",
     "typescript": "^5.6.3",
-    "vite": "^5.4.9"
+    "vite": "^5.4.9",
+    "vitest": "^2.1.8"
   }
 }

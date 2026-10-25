@@ -2,6 +2,8 @@ import { ShieldAlert, ArrowUpDown, CheckSquare, Sparkles } from 'lucide-react';
 import { DAMAGE_STATE_LABELS, THEME } from '../../config/theme';
 import { DAMAGE_STATES } from '../../config/constants';
 import { useSimulationStore } from '../../store/useSimulationStore';
+import { analysisReady, formatUsd, selectedFixCost } from '../../data/contractPayload';
+import type { FixDefinition, WeakPointGroup } from '../../types/dataContract';
 
 /**
  * RIGHT TOP CARD: "Cost Estimation + Suggested Weak Points".
@@ -16,6 +18,26 @@ export function WeakPointsCard() {
   const isShaderProof = useSimulationStore((s) => s.isShaderProof);
   const shaderProofPayload = useSimulationStore((s) => s.shaderProofPayload);
   const clock = useSimulationStore((s) => s.clock);
+  const contract = useSimulationStore((s) => s.contract);
+  const mask = useSimulationStore((s) => s.selectedFixMask);
+  const drawView = useSimulationStore((s) => s.drawView);
+  const setDrawView = useSimulationStore((s) => s.setDrawView);
+  const toggleFixBit = useSimulationStore((s) => s.toggleFixBit);
+  const setSelectedFixMask = useSimulationStore((s) => s.setSelectedFixMask);
+  const setHoveredGroupId = useSimulationStore((s) => s.setHoveredGroupId);
+
+  // Results and fixes stay hidden until the simulation has calculated them.
+  const summary = analysisReady(phase, contract) ? contract!.summary : null;
+  const combo = summary?.by_combo[String(mask)] ?? null;
+  const fixes = summary?.fixes ?? [];
+  const fixById = new Map(fixes.map((f) => [f.id, f]));
+  const allMask = (1 << fixes.length) - 1;
+  const [costLo, costHi] = summary ? selectedFixCost(summary, mask) : [0, 0];
+  const groupFixIds = new Set(summary?.weak_point_groups.map((g) => g.fix_id) ?? []);
+  const otherFixes = fixes.filter((f) => !groupFixIds.has(f.id));
+  const groups = [...(summary?.weak_point_groups ?? [])].sort((a, b) =>
+    sortMode === 'cost' ? a.fix_cost_usd[0] - b.fix_cost_usd[0] : b.priority_score - a.priority_score
+  );
 
   const totalBuildings = buildingsMeta?.building_count ?? 2439;
 
@@ -72,11 +94,50 @@ export function WeakPointsCard() {
           </div>
           <div className="summary-metric">
             <span className="summary-metric-label">Estimated Loss Range (p10–p90)</span>
-            <span className="summary-metric-value muted">
-              {phase === 'idle' ? 'Awaiting Run' : 'Mock Proof Mode'}
+            <span className={`summary-metric-value ${combo ? '' : 'muted'}`}>
+              {combo
+                ? `${formatUsd(combo.total_loss_usd.p10)} – ${formatUsd(combo.total_loss_usd.p90)}`
+                : phase === 'idle'
+                  ? 'Awaiting Run'
+                  : contract
+                    ? 'Simulating…'
+                    : 'Mock Proof Mode'}
             </span>
           </div>
         </div>
+
+        {combo?.risk && (
+          <div className="summary-top-metrics">
+            <div className="summary-metric">
+              <span className="summary-metric-label">VaR₀.₉₉ / CVaR₀.₉₉ (bldg + infra)</span>
+              <span className="summary-metric-value">
+                {formatUsd(combo.risk.var99_usd)} / {formatUsd(combo.risk.cvar99_usd)}
+              </span>
+            </div>
+            <div className="summary-metric">
+              <span className="summary-metric-label">Collapses (p50) · Realization</span>
+              <span className="summary-metric-value">
+                {combo.est_collapse_count.p50.toLocaleString()} ·{' '}
+                <span className="sort-toggle-group" role="group" aria-label="Realization">
+                  <button
+                    type="button"
+                    className={`sort-pill ${drawView === 'p50' ? 'active' : ''}`}
+                    onClick={() => setDrawView('p50')}
+                  >
+                    Typical
+                  </button>
+                  <button
+                    type="button"
+                    className={`sort-pill ${drawView === 'tail' ? 'active' : ''}`}
+                    onClick={() => setDrawView('tail')}
+                  >
+                    1-in-100
+                  </button>
+                </span>
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="damage-counts-strip">
           {DAMAGE_STATES.map((st) => (
@@ -92,21 +153,52 @@ export function WeakPointsCard() {
         </div>
       </div>
 
-      {/* Weak-Point Groups Placeholder List (Phase 1 Empty / Loading State) */}
+      {summary ? (
+        <div className="skeleton-groups-list weak-points-list">
+          {groups.map((g) => (
+            <GroupRow
+              key={g.id}
+              group={g}
+              fix={fixById.get(g.fix_id)}
+              checked={Boolean(fixById.get(g.fix_id) && mask & (1 << fixById.get(g.fix_id)!.bit))}
+              onToggle={(bit) => toggleFixBit(bit)}
+              onHover={setHoveredGroupId}
+            />
+          ))}
+          {otherFixes.length > 0 && (
+            <div className="skeleton-group-row">
+              <div className="skeleton-row-top">
+                <span className="priority-badge medium">INFRASTRUCTURE</span>
+                <span className="skeleton-meta">Natech cascade network fixes</span>
+              </div>
+              {otherFixes.map((f) => (
+                <FixRow key={f.id} fix={f} checked={Boolean(mask & (1 << f.bit))} onToggle={toggleFixBit} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="weak-points-list-empty">
         <div className="empty-state-banner">
           <ShieldAlert size={20} className="empty-state-icon" />
           <div className="empty-state-text">
-            <strong>Awaiting District Simulation Analysis</strong>
+            <strong>
+              {contract && phase === 'playing'
+                ? 'Simulating district damage…'
+                : 'Awaiting District Simulation Analysis'}
+            </strong>
             <p>
-              Weak-point groups, priority scores, expected loss ranges, and retrofit fix
-              checkboxes will populate from <code>/public/data/summary.json</code> after the
-              simulation runs (Phase 2 &amp; 3).
+              {contract
+                ? 'Press Play Simulation. Weak-point groups, recommended fixes, costs and loss ranges appear when the run finishes.'
+                : <>Weak-point groups, priority scores, expected loss ranges, and retrofit fix
+                  checkboxes will populate from <code>/public/data/summary.json</code> after the
+                  simulation runs (Phase 2 &amp; 3).</>}
             </p>
           </div>
         </div>
 
         {/* Skeleton Placeholder Cards showing the exact structure for Phase 3 */}
+        {!contract && (
         <div className="skeleton-groups-list" aria-hidden="true">
           {[
             {
@@ -145,20 +237,95 @@ export function WeakPointsCard() {
             </div>
           ))}
         </div>
+        )}
       </div>
+      )}
 
       {/* Card Footer: Running Total Cost & Select All */}
       <footer className="card-footer">
-        <label className="select-all-label disabled">
+        <label
+          className={`select-all-label ${summary ? '' : 'disabled'}`}
+          onClick={() => summary && setSelectedFixMask(mask === allMask ? 0 : allMask)}
+        >
           <CheckSquare size={15} />
-          <span>Select all fixes</span>
+          <span>{summary && mask === allMask ? 'Clear all fixes' : 'Select all fixes'}</span>
         </label>
 
         <div className="running-cost-total">
           <span className="cost-label">Selected Fixes Cost:</span>
-          <span className="cost-value">$0</span>
+          <span className="cost-value">
+            {costHi > 0 ? `${formatUsd(costLo)} – ${formatUsd(costHi)}` : '$0'}
+          </span>
         </div>
       </footer>
     </section>
+  );
+}
+
+function FixRow({
+  fix,
+  checked,
+  onToggle,
+}: {
+  fix: FixDefinition;
+  checked: boolean;
+  onToggle: (bit: number) => void;
+}) {
+  const source = fix.sources?.[0];
+  return (
+    <label className="skeleton-fix-row" title={fix.rationale}>
+      <input type="checkbox" checked={checked} onChange={() => onToggle(fix.bit)} />
+      <span className="skeleton-fix-label">
+        Fix: {fix.label}
+        {source ? (
+          <>
+            {' '}
+            <a href={source.url} target="_blank" rel="noreferrer">
+              [source]
+            </a>
+          </>
+        ) : fix.evidence === 'inferred' ? (
+          ' (inferred)'
+        ) : null}
+      </span>
+      <span className="skeleton-fix-cost">
+        {formatUsd(fix.cost_usd[0])}–{formatUsd(fix.cost_usd[1])}
+      </span>
+    </label>
+  );
+}
+
+function GroupRow({
+  group,
+  fix,
+  checked,
+  onToggle,
+  onHover,
+}: {
+  group: WeakPointGroup;
+  fix: FixDefinition | undefined;
+  checked: boolean;
+  onToggle: (bit: number) => void;
+  onHover: (id: string | null) => void;
+}) {
+  return (
+    <div
+      className="skeleton-group-row"
+      onMouseEnter={() => onHover(group.id)}
+      onMouseLeave={() => onHover(null)}
+    >
+      <div className="skeleton-row-top">
+        <span className={`priority-badge ${group.priority}`}>
+          {group.priority.toUpperCase()} PRIORITY
+        </span>
+        <span className="skeleton-meta">
+          {group.building_count.toLocaleString()} buildings • Est. loss:{' '}
+          {formatUsd(group.expected_loss_usd[0])} – {formatUsd(group.expected_loss_usd[1])}
+        </span>
+      </div>
+      <div className="skeleton-title">{group.label}</div>
+      <p className="weak-point-rationale">{group.rationale}</p>
+      {fix && <FixRow fix={fix} checked={checked} onToggle={onToggle} />}
+    </div>
   );
 }

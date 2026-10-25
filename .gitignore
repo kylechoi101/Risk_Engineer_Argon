@@ -4,3 +4,5 @@ dist/
 *.tar.gz
 data/*-source.geojson
 data/*-source.json
+tools/cache/
+*.tsbuildinfo

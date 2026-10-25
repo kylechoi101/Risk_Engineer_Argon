@@ -4,7 +4,8 @@ import {
   type DamageState,
   type SimulationStatusLabel,
 } from '../config/constants';
-import type { BuildingsMetadataSchema } from '../types/dataContract';
+import type { BuildingsMetadataSchema, ContractBundle } from '../types/dataContract';
+import { buildPayload, DISPLAY_TIMELINE, type DrawView } from '../data/contractPayload';
 
 export type SimulationPhase = 'idle' | 'playing' | 'analysis_done';
 export type SortMode = 'priority' | 'cost';
@@ -48,6 +49,11 @@ interface SimulationStoreState {
 
   // Phase 1 District & Shader Proof State
   buildingsMeta: BuildingsMetadataSchema | null;
+  /** Backend contract files (scenario, damage, summary, pipeline); null until loaded */
+  contract: ContractBundle | null;
+  contractError: string | null;
+  /** Which representative realization plays: typical (P50) or 1-in-100 (tail) */
+  drawView: DrawView;
   isShaderProof: boolean;
   shaderProofPayload: ShaderProofPayload | null;
   statusLabel: SimulationStatusLabel;
@@ -64,6 +70,11 @@ interface SimulationStoreState {
 
   // Actions
   setBuildingsMeta: (meta: BuildingsMetadataSchema) => void;
+  setContract: (contract: ContractBundle) => void;
+  setContractError: (message: string) => void;
+  setDrawView: (view: DrawView) => void;
+  /** Play the backend scenario when loaded, otherwise the Phase 1 shader proof */
+  startSimulation: () => void;
   setPhase: (phase: SimulationPhase) => void;
   setClock: (clock: number) => void;
   advanceClock: (dt: number) => void;
@@ -122,6 +133,9 @@ export const useSimulationStore = create<SimulationStoreState>((set, get) => ({
   hoveredGroupId: null,
 
   buildingsMeta: null,
+  contract: null,
+  contractError: null,
+  drawView: 'p50',
   isShaderProof: false,
   shaderProofPayload: null,
   statusLabel: 'Idle',
@@ -175,12 +189,42 @@ export const useSimulationStore = create<SimulationStoreState>((set, get) => ({
     }
   },
 
-  setSelectedFixMask: (mask) => set({ selectedFixMask: mask }),
+  setContract: (contract) => set({ contract, contractError: null }),
 
-  toggleFixBit: (bit) =>
-    set((state) => ({
-      selectedFixMask: state.selectedFixMask ^ (1 << bit),
-    })),
+  setContractError: (contractError) => set({ contractError }),
+
+  // Changing fixes or the realization swaps building states in place, so the scene
+  // shows the mitigated outcome instantly without restarting playback.
+  setDrawView: (drawView) => {
+    set({ drawView });
+    refreshPayload();
+  },
+
+  setSelectedFixMask: (mask) => {
+    set({ selectedFixMask: mask });
+    refreshPayload();
+  },
+
+  toggleFixBit: (bit) => {
+    set((state) => ({ selectedFixMask: state.selectedFixMask ^ (1 << bit) }));
+    refreshPayload();
+  },
+
+  startSimulation: () => {
+    const { contract, selectedFixMask, drawView, buildingsMeta } = get();
+    if (!contract) {
+      get().startShaderProof();
+      return;
+    }
+    set({
+      phase: 'playing',
+      clock: 0,
+      duration: DISPLAY_TIMELINE.duration,
+      isShaderProof: true, // reuse the shader timeline: shaking, then the wave front
+      shaderProofPayload: buildPayload(contract, selectedFixMask, drawView, buildingsMeta),
+      statusLabel: 'Earthquake',
+    });
+  },
 
   setSortMode: (sortMode) => set({ sortMode }),
 
@@ -290,3 +334,11 @@ export const useSimulationStore = create<SimulationStoreState>((set, get) => ({
       statusLabel: 'Idle',
     }),
 }));
+
+function refreshPayload(): void {
+  const { contract, phase, selectedFixMask, drawView, buildingsMeta } = useSimulationStore.getState();
+  if (!contract || phase === 'idle') return;
+  useSimulationStore.setState({
+    shaderProofPayload: buildPayload(contract, selectedFixMask, drawView, buildingsMeta),
+  });
+}

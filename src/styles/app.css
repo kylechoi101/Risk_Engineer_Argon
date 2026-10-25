@@ -1088,3 +1088,9 @@ body,
   color: var(--accent-primary);
   font-weight: 600;
 }
+
+/* Contract-driven weak points */
+.weak-points-list{overflow-y:auto}
+.weak-point-rationale{margin:4px 0 6px;font-size:11px;line-height:1.45;opacity:.75}
+.skeleton-fix-row a{color:inherit;opacity:.7}
+.skeleton-fix-row input{cursor:pointer}

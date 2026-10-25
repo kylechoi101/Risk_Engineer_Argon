@@ -1,100 +1,110 @@
-# San Francisco Waterfront Disaster Simulator (1-Mile District)
+# Argon-Risk: San Francisco Waterfront Disaster Simulator
 
-Frontend player for the San Francisco Waterfront 1-mile radius earthquake + tsunami/extreme wave surge simulator, centered on the **San Francisco Ferry Building** (`37.7955° N, 122.3937° W`).
+An interactive 3D digital twin of the 1-mile district around the San Francisco Ferry Building (`37.7955° N, 122.3937° W`) for stress-testing a compound earthquake and wave scenario. A Python backend runs seeded Monte Carlo models for building damage and a natech infrastructure cascade (seawall → substations → fuel terminal → pumps …), computes VaR₀.₉₉ and CVaR₀.₉₉, and uses Gemini (`gemini-4-argon`) to propose and explain fixes. The React + three.js frontend plays the scenario across 3,412 real DataSF buildings. When you toggle a fix, the mitigated outcome appears instantly.
 
----
+The models are a stylized demonstration grounded in public government data. They are not a forecast or an engineering assessment.
 
-## 0. Full demo: frontend + Argon backend
+## Run the demo
 
-You need Node 20+, Python 3.12+ and [`uv`](https://docs.astral.sh/uv/). The Python backend in `backend/` runs the Monte Carlo models, calls Gemini (`gemini-4-argon`), streams the analysis over SSE, and bakes the data contract files the frontend reads from `public/data/`.
-
-**Gemini API key (optional).** Put it in `backend/.env`, which is gitignored. Never commit it.
-
-```bash
-cp backend/.env.example backend/.env
-# then edit backend/.env:  GEMINI_API_KEY=your-key
-```
-
-Without a key everything still runs offline. The backend replays `backend/recordings/` or falls back to built-in fixes. With `ARGON_RECORD=1` in `.env`, every live Gemini reply is saved there for offline replay. Add `ARGON_AGENT=recorded` to force replay during the demo.
-
-**One command** builds the frontend and serves it, `public/data`, and the API together at http://localhost:8000:
-
-```bash
-npm install && (cd backend && uv sync)
-npm run bake:damage      # writes scenario/buildings_damage/summary/pipeline_events.json, keyed to public/data/buildings.json
-npm run demo
-```
-
-For development, run `cd backend && uv run fastapi dev` (port 8000) and `npm run dev` (port 5173). Vite proxies `/api` to the backend. Re-run `npm run bake:damage` after `npm run bake:real` replaces the placeholder district, so the damage files stay keyed to the new building ids.
-
-Contracts: [`docs/contract-v1.1.md`](docs/contract-v1.1.md) for the baked files and [`docs/api.md`](docs/api.md) for the live API. Backend tests: `cd backend && uv run pytest`.
-
----
-
-## 1. Quick Start (Run Instructions)
+You need Node 20+, Python 3.12+ and [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
 npm install
-npm run dev
+(cd backend && uv sync)
+npm run demo              # builds the frontend, then serves it + data + API at http://localhost:8000
 ```
 
-Open the local URL printed by Vite (default: `http://localhost:5173`).
+The committed `public/` folder already holds a baked district and baked damage files, so the demo runs offline with no API key.
 
-### Phase 1 Keyboard Shortcuts & Controls
-- **`P`** (or click **Play Simulation**): Runs the **20-second GPU Damage-Shader Proof** across all 2,439 buildings in a single draw call (ground shake, height-dependent building sway, damage color ramp `0..4`, tilt/sink on state 3, vertical squash-and-sink + instanced dust puffs on state 4, and an advancing Bay wave surge with blue-teal flood tint).
-- **`D`** (or click **Debug (D)**): Toggles the Debug Overlay showing live **FPS**, **Draw Calls**, **Triangle Count**, **Building Count**, **3D Axes Helper** at the Ferry Building origin `(0, 0, 0)`, and a **Wireframe Toggle**.
-- **`R`** (or click **Reset**): Resets the simulation clock and restores all buildings to undamaged state `0`.
-- **Camera Mode button** (top-right of 3D panel): Switches between **Idle Drift** (slow high-oblique panorama over the 1-mile district) and **Free Orbit** (mouse drag to orbit, scroll to zoom, right-drag to pan).
-- **Hover any building in 3D**: Displays a floating tooltip with `Building #<id>`, landmark name (if applicable), current damage state `0..4`, height, ground elevation, and footprint area.
+### Gemini API key (optional)
 
----
+The key goes in `backend/.env`, which is gitignored. Never commit it.
 
-## 2. Coordinate System (Single Shared Frame)
+```bash
+cp backend/.env.example backend/.env
+# edit backend/.env and set:  GEMINI_API_KEY=your-key
+```
+
+| Setting in `backend/.env` | Effect |
+|---|---|
+| `GEMINI_API_KEY=…` | The live `/api/runs` analysis calls Gemini to parse the prompt, propose fixes and write the narrative. |
+| `ARGON_RECORD=1` | Saves every live Gemini reply to `backend/recordings/` for offline replay. |
+| `ARGON_AGENT=recorded` | Forces replay of recordings, even when a key is set. This is a safe setting for a live demo. |
+
+Without a key, the backend replays `backend/recordings/` or falls back to 20 built-in fixes. The full list of settings is in [`docs/api.md`](docs/api.md#configuration).
+
+### Development servers
+
+```bash
+cd backend && uv run fastapi dev     # API on http://localhost:8000 (docs at /docs)
+npm run dev                          # frontend on http://localhost:5173; Vite proxies /api to :8000
+```
+
+## Using the app
+
+- **Play Simulation** (or `P`): plays the baked scenario on a 20 s timeline. The M7.0 shaking comes first, then the wave advances from the bay. Each building reaches its modeled damage state (0 none … 4 collapse) at its onset time.
+- **Cost Estimation + Suggested Weak Points** (right):
+  - Weak-point groups ranked by priority or cost, each with its fix, cost range, source link, and estimated loss.
+  - Infrastructure fixes for the cascade network.
+  - Checking a fix swaps every building to its mitigated state immediately. The p10–p90 loss range, VaR₀.₉₉ / CVaR₀.₉₉ and the p50 collapse count update with it.
+- **Typical / 1-in-100**: switches between the P50 realization and the realization nearest CVaR₀.₉₉.
+- **Architectural View**: replays the recorded backend run (`pipeline_events.json`) for its five stages, using the real messages and timings.
+- **Hover a building**: shows its id, damage state, mode (shaking or flood), height, ground elevation and footprint area.
+- **`D`**: debug overlay (FPS, draw calls, triangles, axes, wireframe). **`R`**: reset. The **camera button** switches between idle drift and free orbit.
+
+If the damage files are missing or fail validation, the page falls back to the Phase 1 procedural shader proof and logs the reason in the console.
+
+## Data pipeline
+
+```bash
+npm run bake:real      # DataSF footprints + tall buildings + streets + NOAA datums -> public/models/district.glb, public/data/buildings.json
+npm run bake:damage    # backend Monte Carlo -> public/data/{scenario,buildings_damage,summary,pipeline_events}.json
+```
+
+Run `bake:damage` after every `bake:real`. The damage files are keyed to the building ids in `buildings.json`, and the frontend refuses mismatched ids. `npm run bake:placeholder` builds an offline procedural district instead.
+
+| File | Written by | Contents |
+|---|---|---|
+| `public/models/district.glb` | `tools/bake_district.mjs` | Merged building mesh, terrain, piers, Bay Bridge span |
+| `public/data/buildings.json` | `tools/bake_district.mjs` | Per-building `id`, `centroid` (ENU m), area, height, ground elevation, data quality |
+| `public/data/scenario.json` | backend bake | Earthquake envelope and the wave inundation grid (base64 float32 arrival / peak depth / recede) |
+| `public/data/buildings_damage.json` | backend bake | Per-building archetype, zone, onset, dominant mode, and damage state + cost for every combination of the 5 fixes (typical and 1-in-100) |
+| `public/data/summary.json` | backend bake | Zones, archetypes, fixes, per-combination losses, collapse counts and VaR/CVaR, weak-point groups, hotspots, the infrastructure network and cascade traces |
+| `public/data/pipeline_events.json` | backend bake | Timed log of the bake run's five stages |
+
+Schemas:
+- [`docs/contract-v1.1.md`](docs/contract-v1.1.md): the baked files. These are contract v1 plus additive fields.
+- [`src/types/dataContract.ts`](src/types/dataContract.ts) and [`src/utils/validators.ts`](src/utils/validators.ts): the frontend's types and load-time checks.
+- [`docs/api.md`](docs/api.md): the live streaming API.
+
+## Live API
+
+The backend also serves the analysis live, which is useful for trying other scenarios or recording Gemini replies:
+
+```bash
+curl -N -X POST localhost:8000/api/runs -H 'content-type: application/json' \
+  -d '{"radius_mi": 1.0, "prompt": "Simulate a Magnitude 7.2 earthquake during a king tide"}'
+```
+
+It streams SSE events: run → data layers → baseline VaR/CVaR → Gemini fixes and narrative → ranked fixes → recommended bundle. `POST /api/simulate` re-runs a saved run with any fix selection in milliseconds. The frontend currently plays the baked files and does not call this API yet.
+
+## Coordinate system
 
 Defined in [`src/config/coordinates.ts`](src/config/coordinates.ts):
-- **Origin `(0, 0, 0)`**: San Francisco Ferry Building (`37.7955° N, -122.3937° W`), sea level = `0 m`.
-- **Radius**: `1 mile = 1609 meters`.
-- **Local East-North-Up (ENU) -> Three.js Mapping** (`1 unit = 1 meter`):
-  - `+X` = **East** (meters)
-  - `+Y` = **Up** (elevation in meters above sea level)
-  - `-Z` = **North** (so `+Z` = South)
+- The origin `(0, 0, 0)` is the Ferry Building at sea level. The study radius is 1 mile (1,609 m).
+- Local East-North-Up meters map to three.js as `+X` East, `+Y` Up and `-Z` North. 1 unit = 1 m.
+- The backend uses the same ENU frame and projection constants.
 
-All modules (terrain, merged buildings mesh, Embarcadero waterfront/piers, Bay Bridge western span, water surface shader, camera rig, and inundation grid lookup) use this single coordinate system.
+## Tests
 
----
+```bash
+npm test                     # Vitest: contract payload mapping
+npx tsc -b                   # frontend type check
+cd backend && uv run pytest  # backend: engine parity, models, contract invariants, API, pipeline
+```
 
-## 3. District Bake Pipeline & Data Sources
+## Limitations
 
-Scripts live in [`/tools`](tools/):
-1. [`tools/fetch_real_data.py`](tools/fetch_real_data.py): Fetches public geospatial datasets for the 1-mile bounding box around the Ferry Building and caches them in `tools/cache/`:
-   - **DataSF Building Footprints** (`https://data.sfgov.org/resource/ynuv-fyni.geojson`): Building footprint polygons, `hgt_median_m` (height), and `gnd_min_m` (ground elevation).
-   - **DataSF Tall Building Inventory** (`https://data.sfgov.org/resource/5kya-mfst.json`): Supplemental height/structural metadata for downtown towers.
-   - **DataSF Street Centerlines** (`https://data.sfgov.org/resource/3psu-pn9h.geojson`): Active street network.
-   - **NOAA CO-OPS Tidal Datums** (`https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/9414290/datums.json?units=metric`): Station 9414290 (San Francisco) MHHW/NAVD88 datum.
-2. [`tools/bake_district.mjs`](tools/bake_district.mjs): Compiles the 3D district into `/public/models/district.glb` and `/public/data/buildings.json`.
-
-### Regenerating the District
-- **Offline / Procedural Placeholder Mode** (currently active in `/public/models/district.glb` and `/public/data/buildings.json`):
-  ```bash
-  npm run bake:placeholder
-  ```
-- **Real DataSF Footprints Mode** (run locally on a machine with internet access to `data.sfgov.org`):
-  ```bash
-  npm run bake:real
-  ```
-
----
-
-## 4. Schema Locations & Swapping in Real Backend Files
-
-TypeScript interfaces for the backend data contract are defined in [`src/types/dataContract.ts`](src/types/dataContract.ts) and validated in [`src/utils/validators.ts`](src/utils/validators.ts):
-
-| File Path | Schema Type | Validator Function | Purpose |
-| :--- | :--- | :--- | :--- |
-| `/public/data/buildings.json` | `BuildingsMetadataSchema` | `validateBuildingsMetadata()` | Per-building `id`, `centroid` (ENU m), `footprint_area_m2`, `height_m`, `ground_elevation_m`, and `data_quality` |
-| `/public/data/scenario.json` | `ScenarioSchema` | `validateScenario()` | Preset earthquake magnitude, duration, shake envelope, and base64 Float32 wave inundation grids (`arrival_s`, `peak_depth_m`, `recede_s`) |
-| `/public/data/buildings_damage.json` | `BuildingsDamageSchema` | `validateDamageAndSummary()` | Parallel arrays indexed by `building_ids[i]`: `archetype_idx`, `zone_idx`, `onset_s`, `dominant_mode`, and `outcomes[fixBitmask]` |
-| `/public/data/summary.json` | `SummarySchema` | `validateDamageAndSummary()` | District `zones`, `archetypes`, `fixes` (with bit positions), `by_combo` loss/collapse summaries, `weak_point_groups`, and `hotspots` |
-| `/public/data/pipeline_events.json` | `PipelineEventsSchema` | `validatePipelineEvents()` | Recorded Argon multi-agent event stream replayed by `RecordedPipelineAdapter` (or swapped via `PipelineEventAdapter` for live SSE) |
-
-To swap in the real backend files from the Argon backend team, drop `scenario.json`, `buildings_damage.json`, `summary.json`, and `pipeline_events.json` directly into `/public/data/`.
+- Fragility curves, ground motion, replacement costs, fix costs and fix effects are illustrative assumptions. Building era and material are missing from the public data, so building archetypes are inferred.
+- The wave grid is a screening heuristic: ground elevation interpolated from footprint data, a decaying water level flood-filled from the bay, and an assumed run-up speed. It does not use a hydrodynamic model, and it does not yet use the CGS Tsunami Hazard Area polygon, whose service requires a token.
+- The water visual always shows the unmitigated wave. Flood fixes lower building damage, not the drawn water.

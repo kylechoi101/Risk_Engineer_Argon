@@ -68,6 +68,9 @@ export interface BuildingsDamageSchema {
   dominant_mode: BuildingDominantMode[];
   /** Keys are decimal strings of the bitmask of selected fixes ("0", "1", "5", etc.) */
   outcomes: Record<string, BuildingOutcomeCombo>;
+  /** v1.1: the 1-in-100 realization (draw nearest CVaR 0.99), same shape as outcomes */
+  outcomes_tail?: Record<string, BuildingOutcomeCombo>;
+  representative_draws?: { p50: number; tail: number };
 }
 
 // ============================================================================
@@ -88,6 +91,23 @@ export interface FixDefinition {
   bit: number;
   label: string;
   cost_usd: [number, number];
+  applies_to_archetypes?: string[];
+  /** v1.1 */
+  applies_to_nodes?: string[];
+  applies_to_zones?: string[];
+  evidence?: EvidenceType;
+  sources?: DataSourceRef[];
+  rationale?: string;
+}
+
+/** v1.1: buildings + infrastructure tail risk for one combo */
+export interface ComboRisk {
+  expected_loss_usd: number;
+  var99_usd: number;
+  cvar99_usd: number;
+  building_expected_loss_usd: number;
+  infrastructure_expected_loss_usd: number;
+  node_failure_probs: Record<string, number>;
 }
 
 export interface PercentileEstimate {
@@ -101,6 +121,7 @@ export interface ComboSummary {
   total_loss_usd: PercentileEstimate;
   est_collapse_count: PercentileEstimate;
   by_zone_counts_by_state: [number, number, number, number, number][];
+  risk?: ComboRisk;
 }
 
 export interface WeakPointGroup {
@@ -130,6 +151,7 @@ export interface HotspotInfo {
 }
 
 export interface SummarySchema {
+  price_year?: number;
   zones: ZoneInfo[];
   archetypes: ArchetypeInfo[];
   fixes: FixDefinition[];
@@ -197,4 +219,14 @@ export interface BuildingsMetadataSchema {
   building_count: number;
   unavailable_attributes_report: string[];
   buildings: BuildingRecord[];
+}
+
+// ============================================================================
+// Loaded contract bundle (all four backend files, validated)
+// ============================================================================
+export interface ContractBundle {
+  scenario: ScenarioSchema;
+  damage: BuildingsDamageSchema;
+  summary: SummarySchema;
+  pipeline: PipelineEventsSchema;
 }
