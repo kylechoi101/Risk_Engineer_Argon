@@ -1,3 +1,5 @@
+from itertools import pairwise
+
 import numpy as np
 import pytest
 
@@ -52,7 +54,7 @@ def test_scoring_keeps_effective_fixes_and_drops_useless_ones():
     assert not by_id["gx_noop"]["kept"] and "CI" in by_id["gx_noop"]["reason"]
     kept = [s for s in scored if s["kept"]]
     assert [s["rank"] for s in kept] == list(range(1, len(kept) + 1))
-    assert all(a["delta_cvar99_m"] >= b["delta_cvar99_m"] for a, b in zip(kept, kept[1:]))
+    assert all(a["delta_cvar99_m"] >= b["delta_cvar99_m"] for a, b in pairwise(kept))
     sw1 = by_id["fix_sw_1"]
     assert sw1["roi"] == pytest.approx(sw1["expected_loss_saved_m"] / 45, abs=0.01)
 
