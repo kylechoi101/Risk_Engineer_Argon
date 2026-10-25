@@ -105,6 +105,10 @@ export function runSimulation(options = {}) {
   const seed = Number(options.seed ?? 42);
   const budgetMillions = options.budgetMillions != null ? Number(options.budgetMillions) : Infinity;
   const requestedIds = Array.isArray(options.selectedFixIds) ? options.selectedFixIds : [];
+  const context = options.context || {};
+  // Public map layers provide bounded exposure modifiers, not calibrated fragility curves.
+  const seismicExposureScale = Math.max(.8, Math.min(1.25, Number(context.seismicExposureScale) || 1));
+  const coastalExposureScale = Math.max(.75, Math.min(1.35, Number(context.coastalExposureScale) || 1));
 
   const fixMap = new Map(FIXES.map(f => [f.id, f]));
   const activeFixes = [];
@@ -171,8 +175,8 @@ export function runSimulation(options = {}) {
 
       const rawHazard =
         1.0 -
-        (1.0 - Math.min(0.95, node.baseEq * eqIntensity * eqCommon)) *
-          (1.0 - Math.min(0.95, node.baseSurge * surgeIntensity * surgeCommon));
+        (1.0 - Math.min(0.95, node.baseEq * eqIntensity * eqCommon * seismicExposureScale)) *
+          (1.0 - Math.min(0.95, node.baseSurge * surgeIntensity * surgeCommon * coastalExposureScale));
 
       // Cascading dependency penalties
       let bCascade = 0;
@@ -242,7 +246,9 @@ export function runSimulation(options = {}) {
       spentMillions: Number(spentMillions.toFixed(2)),
       appliedFixIds: activeFixes.map(f => f.id),
       skippedFixIdsDueToBudget: skippedFixes,
-      runtimeMs
+      runtimeMs,
+      seismicExposureScale,
+      coastalExposureScale
     },
     baseline,
     mitigated,

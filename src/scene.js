@@ -112,6 +112,23 @@ export async function createScene(container, data) {
     }
   }
 
+  // Mapped DataSF structural inventories; markers are real locations, not risk nodes.
+  function inventoryMarkers(records, color, radius, y){
+    const geometry=new THREE.SphereGeometry(radius,6,5);
+    const material=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.94,depthTest:false});
+    const mesh=new THREE.InstancedMesh(geometry,material,records.length);
+    const dummy=new THREE.Object3D();
+    records.forEach((record,index)=>{
+      dummy.position.set(record.xy[0],y,-record.xy[1]);
+      dummy.updateMatrix();mesh.setMatrixAt(index,dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate=true;
+    mesh.renderOrder=6;
+    scene.add(mesh);
+  }
+  inventoryMarkers(data.tallBuildings||[],0xffbc72,4.5,36);
+  inventoryMarkers(data.softStory||[],0xf36d80,3.5,16);
+
   const minor=[],major=[];
   for(const [points,rawClass,name] of data.roads || []){
     if(!points || points.length<2)continue;

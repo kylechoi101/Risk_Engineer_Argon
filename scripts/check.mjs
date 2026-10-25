@@ -5,6 +5,10 @@ import { FIXES, NODES, runSimulation } from '../src/simulation.js';
 const scene = JSON.parse(readFileSync(new URL('../public/data/scene.json', import.meta.url)));
 assert.ok(scene.buildings.length > 3000, 'DataSF building geometry should cover the study area');
 assert.ok(scene.roads.length > 800, 'DataSF streets should cover the study area');
+assert.ok(scene.tallBuildings.length > 100, 'tall-building inventory should be present');
+assert.ok(scene.softStory.length > 100, 'soft-story inventory should be present');
+assert.ok(scene.exposure.seismicZoneBuildings > 500, 'seismic zones should intersect the study area');
+assert.ok(scene.datum.mhhwNavd88M > 1 && scene.datum.mhhwNavd88M < 3, 'NOAA MHHW should be expressed in NAVD88 meters');
 assert.equal(FIXES.length, 20);
 assert.equal(new Set(FIXES.map(f => f.id)).size, 20);
 assert.equal(NODES.length, 8);
@@ -20,4 +24,6 @@ assert.ok(protectedRun.mitigated.expectedFatalities < first.baseline.expectedFat
 assert.ok(protectedRun.config.runtimeMs < 2000, 'portfolio run should stay under two seconds');
 const budgeted = runSimulation({ ...options, selectedFixIds: FIXES.map(f => f.id), budgetMillions: 50 });
 assert.ok(budgeted.config.spentMillions <= 50, 'budget ceiling should hold');
+const elevatedExposure = runSimulation({ ...options, context: { seismicExposureScale: 1.2, coastalExposureScale: 1.2 } });
+assert.ok(elevatedExposure.baseline.expectedLossMillions > first.baseline.expectedLossMillions, 'mapped exposure should affect the model');
 console.log(`Verified ${scene.buildings.length} footprints, ${scene.roads.length} streets, 20 fixes; full portfolio run ${protectedRun.config.runtimeMs} ms.`);

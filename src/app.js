@@ -11,6 +11,7 @@ const state = {
   category: 'All',
   activeNode: null,
   scene: null,
+  mapData: null,
   rankings: [],
   result: null,
   timeline: 0,
@@ -24,6 +25,21 @@ const compactMoney = (value) => {
 const cleanNumber = (value, digits = 1) => Number(value).toFixed(digits);
 const nodeName = (id) => NODES.find((n) => n.id === id)?.name || id.replaceAll('_', ' ');
 const chosenCost = () => FIXES.filter((f) => state.selected.has(f.id)).reduce((sum, f) => sum + f.costMillions, 0);
+
+function getExposureContext() {
+  const data = state.mapData;
+  if (!data) return null;
+  const waterLevel = data.datum.mhhwNavd88M + state.surge;
+  const lowGroundCount = data.buildings.filter((building) => Number.isFinite(building[2]) && building[2] <= waterLevel).length;
+  const total = data.exposure.buildingCount;
+  // Deliberately small, bounded adjustments: geographic exposure, not fitted loss curves.
+  return {
+    waterLevel,
+    lowGroundCount,
+    seismicExposureScale: .85 + .55 * data.exposure.seismicZoneBuildings / total + .10 * Math.min(1, data.exposure.softStoryOpenCount / 20) + .05 * Math.min(1, data.exposure.tallBuildingCount / 150),
+    coastalExposureScale: .85 + .45 * Math.min(1, lowGroundCount / 500)
+  };
+}
 
 function updateRange(input) {
   const min = Number(input.min), max = Number(input.max), value = Number(input.value);
@@ -51,6 +67,7 @@ function analyzeFixes() {
       earthquakeMagnitude: state.magnitude,
       coastalSurgeMeters: state.surge,
       selectedFixIds: [fix.id],
+      context: getExposureContext(),
       seed: 42,
       iterations: 4096
     });
@@ -144,6 +161,13 @@ function renderMetrics() {
   $('casualtiesValue').textContent = cleanNumber(mitigated.expectedFatalities);
   $('avoidedValue').textContent = compactMoney(overallReduction.expectedLossSavedMillions);
   $('runTime').textContent = `RERUN ${Math.round(config.runtimeMs)} MS`;
+  const context = getExposureContext();
+  if (context) {
+    $('waterElevation').textContent = `${context.waterLevel.toFixed(2)} m`;
+    $('lowGroundCount').textContent = context.lowGroundCount.toLocaleString();
+    $('zoneCount').textContent = state.mapData.exposure.seismicZoneBuildings.toLocaleString();
+    $('inventoryCount').textContent = `${state.mapData.exposure.tallBuildingCount} tall · ${state.mapData.exposure.softStoryCount} soft-story (${state.mapData.exposure.softStoryOpenCount} not marked complete)`;
+  }
   $('selectedCount').innerHTML = `${state.selected.size} <span>/ 20</span>`;
   $('spentValue').textContent = compactMoney(chosenCost());
   $('roiValue').textContent = chosenCost() ? `${overallReduction.benefitCostRatio.toFixed(1)}×` : '—';
@@ -169,6 +193,7 @@ function recalculate(reanalyze = false) {
     earthquakeMagnitude: state.magnitude,
     coastalSurgeMeters: state.surge,
     selectedFixIds: [...state.selected],
+    context: getExposureContext(),
     budgetMillions: state.budget,
     seed: 42,
     iterations: 4096
@@ -248,6 +273,8 @@ async function start() {
     const response = await fetch('/data/scene.json');
     if (!response.ok) throw new Error(`Scene data: ${response.status}`);
     const data = await response.json();
+    state.mapData = data;
+    recalculate(true);
     state.scene = await createScene($('scene'), data);
     state.scene.onNodeSelect((id) => {state.activeNode=id;renderNodes();});
     state.scene.onTimelineUpdate(updateTimeline);
