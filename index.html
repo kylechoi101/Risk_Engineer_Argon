@@ -15,7 +15,7 @@
       <header class="topbar">
         <div class="brand"><span class="brand-mark"><span></span><span></span><span></span></span><div><strong>ARGON<span>RISK</span></strong><small>INFRASTRUCTURE INTELLIGENCE</small></div></div>
         <div class="header-center"><span class="orange-dot"></span><span>SF WATERFRONT DIGITAL TWIN</span><i></i><span>FERRY BUILDING · BAY BRIDGE</span></div>
-        <div class="header-right"><span class="engine-pill"><span class="pulse-dot"></span> MODEL ONLINE</span><button id="aboutBtn" class="icon-text-btn">ⓘ <span>About this model</span></button></div>
+        <div class="header-right"><span class="engine-pill"><span class="pulse-dot"></span> <span id="engineMode">CONNECTING</span></span><button id="aboutBtn" class="icon-text-btn">ⓘ <span>About this model</span></button></div>
       </header>
 
       <main class="workspace">
@@ -57,6 +57,7 @@
           <div class="insights-head"><span class="eyebrow">02 / RISK INTELLIGENCE</span><span id="runTime" class="run-time">READY</span></div>
           <div class="risk-lede"><small>99% VALUE AT RISK · USD</small><div class="big-metric"><span id="varValue">—</span></div><div id="varDelta" class="metric-delta">Simulating…</div></div>
           <div class="metric-pair"><div><small>EXPECTED SHORTFALL</small><strong id="cvarValue">—</strong><span>CVaR₀.₉₉ · USD M</span></div><div><small>EXPECTED CASUALTIES</small><strong id="casualtiesValue">—</strong><span>Modeled mean · people</span></div></div>
+          <div class="agent-narrative" aria-live="polite"><small>ARGON ANALYSIS</small><p id="agentNarrative">—</p></div>
           <div class="exposure-card"><div class="exposure-heading">PUBLIC DATA EXPOSURE <span>PROXY</span></div><div class="exposure-grid"><div><strong id="waterElevation">—</strong><small>WATER LEVEL · NAVD88</small></div><div><strong id="lowGroundCount">—</strong><small>BUILDINGS BELOW LEVEL</small></div><div><strong id="zoneCount">—</strong><small>IN SEISMIC ZONES</small></div></div><div id="inventoryCount" class="inventory-count">—</div><p>Low ground is elevation screening, not a flood extent. Zone overlap indicates mapped seismic hazard, not failure probability.</p></div>
           <div class="chart-heading"><div><span class="eyebrow">LOSS DISTRIBUTION</span><small>Baseline vs. selected fixes</small></div><div class="chart-key"><span class="before">BASE</span><span class="after">RESILIENT</span></div></div>
           <div id="distribution" class="distribution-chart" role="img" aria-label="Loss distribution chart"></div>

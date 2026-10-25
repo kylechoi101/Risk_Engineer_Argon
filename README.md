@@ -15,7 +15,18 @@ cp backend/.env.example backend/.env
 
 `backend/.env` is gitignored, so never commit the key. Without a key, the demo still runs fully offline: it replays recordings from `backend/recordings/`, or falls back to the built-in fixes and a template narrative. To record live Gemini replies for an offline demo, also set `ARGON_RECORD=1` and run the demo scenario once.
 
-**2. Start the backend** (terminal 1):
+**2. One command for the demo.** This builds the frontend and serves it, the baked data and the API together at http://localhost:8000:
+
+```bash
+npm install && (cd backend && uv sync)
+npm run demo
+```
+
+The page calls the backend when `/api/health` answers. It streams the scenario analysis, ranks the fixes, and re-runs each toggle through `/api/simulate`. If the backend is down, or the static `dist/` build is hosted alone, the page falls back to the in-browser engine.
+
+**For development**, run the two servers separately. The Vite dev server proxies `/api` to the backend.
+
+**Backend** (terminal 1):
 
 ```bash
 cd backend
@@ -23,14 +34,14 @@ uv sync
 uv run fastapi dev        # http://localhost:8000 (API docs at /docs)
 ```
 
-**3. Bake the demo data** (once, or after changing the scenario):
+**Bake the contract data** (once, or after changing the scenario):
 
 ```bash
 cd backend
 uv run python scripts/bake_contract.py    # writes public/data/*.json and checks the invariants
 ```
 
-**4. Start the frontend** (terminal 2, repo root):
+**Frontend** (terminal 2, repo root):
 
 ```bash
 npm install

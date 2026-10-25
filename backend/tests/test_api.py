@@ -74,3 +74,15 @@ def test_cors_allows_the_frontend(client):
     response = client.options("/api/runs", headers={"Origin": "http://localhost:3000",
                                                     "Access-Control-Request-Method": "POST"})
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
+def test_serves_the_built_frontend_beside_the_api(tmp_path):
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<h1>Argon</h1>")
+    recorded = RecordedAgent(tmp_path / "rec", delay_s=0)
+    deps = Deps(agent=recorded, store=RunStore(tmp_path / "db"), layers=snapshot_provider,
+                fallback=recorded)
+    client = TestClient(create_app(deps, cors_origins=[], frontend_dir=dist))
+    assert "Argon" in client.get("/").text
+    assert client.get("/api/health").json()["status"] == "ok"

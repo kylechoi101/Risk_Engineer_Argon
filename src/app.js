@@ -1,6 +1,7 @@
 import './style.css';
 import { FIXES, NODES, runSimulation } from './simulation.js';
 import { createScene } from './scene.js';
+import { backendAvailable, hazardsFor, simulate, streamRun, toUiFix, toUiResult } from './backend.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -15,7 +16,11 @@ const state = {
   rankings: [],
   result: null,
   timeline: 0,
-  timelinePlaying: false
+  timelinePlaying: false,
+  backend: false,
+  runId: null,
+  bundle: [],
+  narrative: ''
 };
 
 const compactMoney = (value) => {
@@ -24,7 +29,8 @@ const compactMoney = (value) => {
 };
 const cleanNumber = (value, digits = 1) => Number(value).toFixed(digits);
 const nodeName = (id) => NODES.find((n) => n.id === id)?.name || id.replaceAll('_', ' ');
-const chosenCost = () => FIXES.filter((f) => state.selected.has(f.id)).reduce((sum, f) => sum + f.costMillions, 0);
+const chosenCost = () => state.rankings.filter((f) => state.selected.has(f.id)).reduce((sum, f) => sum + f.costMillions, 0);
+const setNarrative = (text) => { $('agentNarrative').textContent = text; };
 
 function getExposureContext() {
   const data = state.mapData;
@@ -160,7 +166,7 @@ function renderMetrics() {
   $('cvarValue').textContent = compactMoney(mitigated.cvar99Millions);
   $('casualtiesValue').textContent = cleanNumber(mitigated.expectedFatalities);
   $('avoidedValue').textContent = compactMoney(overallReduction.expectedLossSavedMillions);
-  $('runTime').textContent = `RERUN ${Math.round(config.runtimeMs)} MS`;
+  $('runTime').textContent = `${state.backend ? 'API RERUN' : 'RERUN'} ${Math.round(config.runtimeMs)} MS`;
   const context = getExposureContext();
   if (context) {
     $('waterElevation').textContent = `${context.waterLevel.toFixed(2)} m`;
@@ -168,9 +174,9 @@ function renderMetrics() {
     $('zoneCount').textContent = state.mapData.exposure.seismicZoneBuildings.toLocaleString();
     $('inventoryCount').textContent = `${state.mapData.exposure.tallBuildingCount} tall · ${state.mapData.exposure.softStoryCount} soft-story (${state.mapData.exposure.softStoryOpenCount} not marked complete)`;
   }
-  $('selectedCount').innerHTML = `${state.selected.size} <span>/ 20</span>`;
+  $('selectedCount').innerHTML = `${state.selected.size} <span>/ ${state.rankings.length}</span>`;
   $('spentValue').textContent = compactMoney(chosenCost());
-  $('roiValue').textContent = chosenCost() ? `${overallReduction.benefitCostRatio.toFixed(1)}×` : '—';
+  $('roiValue').textContent = chosenCost() && overallReduction.benefitCostRatio != null ? `${overallReduction.benefitCostRatio.toFixed(1)}×` : '—';
   drawDistribution(baseline, mitigated);
   renderNodes();
   renderFixes();
@@ -188,6 +194,75 @@ function updateTimeline({timeline = 0, playing = false}) {
 }
 
 function recalculate(reanalyze = false) {
+  if (state.backend) recalculateRemote(reanalyze);
+  else recalculateLocal(reanalyze);
+}
+
+function showResult() {
+  renderMetrics();
+  if (state.scene) {
+    state.scene.setScenario({magnitude:state.magnitude,surge:state.surge});
+    state.scene.replayDisaster();
+    updateTimeline({timeline:0,playing:true});
+  }
+}
+
+// Backend mode: a scenario change streams a new analysis; a fix or budget change re-runs it.
+let remoteTimer = null, remoteAbort = null;
+function recalculateRemote(reanalyze) {
+  clearTimeout(remoteTimer);
+  remoteTimer = setTimeout(() => (reanalyze || !state.runId ? startRemoteRun() : simulateRemote()), reanalyze ? 350 : 0);
+}
+
+async function startRemoteRun() {
+  remoteAbort?.abort();
+  const controller = new AbortController();
+  remoteAbort = controller;
+  const rankings = [];
+  let runId = null;
+  state.narrative = '';
+  setNarrative('Argon is analyzing the scenario…');
+  $('varDelta').textContent = 'STREAMING ANALYSIS…';
+  try {
+    await streamRun({ hazards: hazardsFor(state.magnitude, state.surge), budget_m: state.budget, seed: 42, iterations: 4096 }, (event, data) => {
+      if (event === 'agent.text') { state.narrative += data.delta; setNarrative(state.narrative); }
+      else if (event === 'fix.ranked') rankings.push(toUiFix(data));
+      else if (event === 'sim.mitigated') state.bundle = data.bundle.fix_ids;
+      else if (event === 'run.completed') runId = data.run_id;
+      else if (event === 'error' && !data.fallback_used) throw new Error(data.message);
+    }, controller.signal);
+  } catch (error) {
+    if (!controller.signal.aborted) fallBackToLocal(error);
+    return;
+  }
+  if (controller.signal.aborted || !runId) return;
+  state.runId = runId;
+  state.rankings = rankings;
+  const known = new Set(rankings.map((f) => f.id));
+  state.selected = new Set([...state.selected].filter((id) => known.has(id)));
+  if (!state.selected.size) state.selected = new Set(state.bundle);
+  await simulateRemote();
+}
+
+async function simulateRemote() {
+  try {
+    state.result = toUiResult(await simulate({ run_id: state.runId, selected_fix_ids: [...state.selected], budget_m: state.budget }));
+  } catch (error) {
+    fallBackToLocal(error);
+    return;
+  }
+  showResult();
+}
+
+function fallBackToLocal(error) {
+  console.error(error);
+  state.backend = false;
+  $('engineMode').textContent = 'BROWSER ENGINE';
+  setNarrative('The backend is unavailable, so the in-browser engine is running this scenario.');
+  recalculateLocal(true);
+}
+
+function recalculateLocal(reanalyze = false) {
   if (reanalyze) analyzeFixes();
   state.result = runSimulation({
     earthquakeMagnitude: state.magnitude,
@@ -207,7 +282,7 @@ function recalculate(reanalyze = false) {
 }
 
 function toggleFix(id) {
-  const fix = FIXES.find((item) => item.id === id);
+  const fix = state.rankings.find((item) => item.id === id);
   if (!fix) return;
   if (state.selected.has(id)) state.selected.delete(id);
   else if (chosenCost() + fix.costMillions <= state.budget) state.selected.add(id);
@@ -268,19 +343,23 @@ function bindControls() {
 }
 
 async function start() {
-  bindControls();syncControls();recalculate(true);
+  bindControls();syncControls();
+  state.backend = await backendAvailable();
+  $('engineMode').textContent = state.backend ? 'ARGON BACKEND · LIVE' : 'BROWSER ENGINE';
+  setNarrative(state.backend ? 'Argon is analyzing the scenario…' : 'Running the in-browser engine. Start the backend for the live Gemini analysis.');
+  recalculate(true);
   try {
     const response = await fetch('/data/scene.json');
     if (!response.ok) throw new Error(`Scene data: ${response.status}`);
     const data = await response.json();
     state.mapData = data;
-    recalculate(true);
+    if (!state.backend) recalculate(true);
     state.scene = await createScene($('scene'), data);
     state.scene.onNodeSelect((id) => {state.activeNode=id;renderNodes();});
     state.scene.onTimelineUpdate(updateTimeline);
     $('renderMode').textContent = `${state.scene.mode} RENDERER · ${data.buildings.length.toLocaleString()} BUILDINGS`;
     state.scene.setScenario({magnitude:state.magnitude,surge:state.surge});
-    state.scene.setRisk(state.result.mitigated.nodeFailureProbs, state.activeNode);
+    if (state.result) state.scene.setRisk(state.result.mitigated.nodeFailureProbs, state.activeNode);
     state.scene.replayDisaster();
     updateTimeline({timeline:0,playing:true});
   } catch (error) {

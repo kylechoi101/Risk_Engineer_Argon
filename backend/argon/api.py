@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from argon.agent.agents import RecordedAgent, make_agent
 from argon.data.provider import live_provider, make_provider
@@ -18,6 +19,7 @@ from argon.schemas import RunRequest, SimulateRequest
 from argon.store import RunStore
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
+FRONTEND_DIST = BACKEND_DIR.parent / "dist"  # npm run build
 
 
 def _plain(value):
@@ -43,7 +45,8 @@ def deps_from_env(env: Mapping[str, str]) -> Deps:
     )
 
 
-def create_app(deps: Deps | None = None, cors_origins: list[str] | None = None) -> FastAPI:
+def create_app(deps: Deps | None = None, cors_origins: list[str] | None = None,
+               frontend_dir: Path | None = FRONTEND_DIST) -> FastAPI:
     if deps is None:
         load_dotenv(BACKEND_DIR / ".env")
         deps = deps_from_env(os.environ)
@@ -83,5 +86,8 @@ def create_app(deps: Deps | None = None, cors_origins: list[str] | None = None) 
         return {"status": "ok", "agent": deps.agent.mode,
                 "data": "live" if deps.layers is live_provider else "snapshot"}
 
+    # One deploy: serve the built frontend from the same origin, after the API routes.
+    if frontend_dir is not None and (Path(frontend_dir) / "index.html").exists():
+        app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
     return app
 
