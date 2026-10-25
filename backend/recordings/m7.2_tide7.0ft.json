@@ -1,0 +1,257 @@
+{
+  "fixes": [
+    {
+      "id": "fix_01",
+      "title": "Seawall Jet Grouting & Foundation Stabilization",
+      "category": "Civil",
+      "target_node": "seawall",
+      "cost_m": 25.0,
+      "reduction_factor": 0.45,
+      "impact": "Prevents liquefaction-induced lateral spreading and slumping of the perimeter seawall during severe seismic shaking."
+    },
+    {
+      "id": "fix_02",
+      "title": "Deployable Modular Floodgate System",
+      "category": "Hardware",
+      "target_node": "seawall",
+      "cost_m": 8.0,
+      "reduction_factor": 0.25,
+      "impact": "Blocks king tide overtopping and coastal surge through low-lying seawall gaps and settled sections."
+    },
+    {
+      "id": "fix_03",
+      "title": "Real-Time Structural Health & Tide Monitoring",
+      "category": "Software",
+      "target_node": "seawall",
+      "cost_m": 1.5,
+      "reduction_factor": 0.12,
+      "impact": "Detects incipient wall deformation and triggers automated early closure of coastal flood barriers."
+    },
+    {
+      "id": "fix_04",
+      "title": "Substation Elevation & Perimeter Floodwall",
+      "category": "Civil",
+      "target_node": "substations",
+      "cost_m": 15.0,
+      "reduction_factor": 0.4,
+      "impact": "Prevents saltwater inundation of high-voltage switchgear following seawall breaches or king tides."
+    },
+    {
+      "id": "fix_05",
+      "title": "Transformer Base Isolation & Flexible Busbars",
+      "category": "Hardware",
+      "target_node": "substations",
+      "cost_m": 10.0,
+      "reduction_factor": 0.38,
+      "impact": "Eliminates porcelain bushing shear and transformer anchoring failures during high-intensity ground motion."
+    },
+    {
+      "id": "fix_06",
+      "title": "Automated Microgrid Islanding & Fault Isolation",
+      "category": "Software",
+      "target_node": "substations",
+      "cost_m": 3.0,
+      "reduction_factor": 0.25,
+      "impact": "Prevents cascading electrical trips by rapidly isolating damaged feeders and stabilizing local voltage."
+    },
+    {
+      "id": "fix_07",
+      "title": "Secondary Containment Dikes & Pile Pinning",
+      "category": "Civil",
+      "target_node": "fuel_terminal",
+      "cost_m": 12.0,
+      "reduction_factor": 0.38,
+      "impact": "Prevents tank foundation differential settlement and contains hazardous spills during soil liquefaction."
+    },
+    {
+      "id": "fix_08",
+      "title": "Flexible Seismic Pipe Joints & Shutoff Valves",
+      "category": "Hardware",
+      "target_node": "fuel_terminal",
+      "cost_m": 6.0,
+      "reduction_factor": 0.35,
+      "impact": "Stops rigid pipeline rupture at tank manifolds caused by differential ground movement."
+    },
+    {
+      "id": "fix_09",
+      "title": "SCADA Leak Detection & Emergency Shutdown",
+      "category": "Software",
+      "target_node": "fuel_terminal",
+      "cost_m": 2.0,
+      "reduction_factor": 0.2,
+      "impact": "Automatically depressurizes fuel transfer lines upon detecting seismic P-waves or pressure drops."
+    },
+    {
+      "id": "fix_10",
+      "title": "Pump Station Seismic Bracing & Floodproofing",
+      "category": "Civil",
+      "target_node": "water_pump",
+      "cost_m": 14.0,
+      "reduction_factor": 0.42,
+      "impact": "Protects the pump house structure from shear wall collapse and coastal floodwater intrusion."
+    },
+    {
+      "id": "fix_11",
+      "title": "Dual-Fuel Turbine Generators & Bladder Tanks",
+      "category": "Hardware",
+      "target_node": "water_pump",
+      "cost_m": 9.0,
+      "reduction_factor": 0.4,
+      "impact": "Maintains high-pressure firefighting water flow when external substations and fuel pipelines fail."
+    },
+    {
+      "id": "fix_12",
+      "title": "Predictive Pressure Surge & Valve Control",
+      "category": "Software",
+      "target_node": "water_pump",
+      "cost_m": 2.0,
+      "reduction_factor": 0.22,
+      "impact": "Prevents water hammer and pump cavitation when downstream mains rupture during an earthquake."
+    },
+    {
+      "id": "fix_13",
+      "title": "Reinforced Underground Fiber Duct Banks",
+      "category": "Civil",
+      "target_node": "comms",
+      "cost_m": 8.0,
+      "reduction_factor": 0.35,
+      "impact": "Prevents shearing of critical fiber optic trunk lines across liquefaction transition zones."
+    },
+    {
+      "id": "fix_14",
+      "title": "72-Hour Battery Backup & Satellite Uplinks",
+      "category": "Hardware",
+      "target_node": "comms",
+      "cost_m": 5.0,
+      "reduction_factor": 0.35,
+      "impact": "Sustains emergency communications hub operation during prolonged grid outages and land-line severing."
+    },
+    {
+      "id": "fix_15",
+      "title": "SDN Mesh Auto-Rerouting Protocol",
+      "category": "Software",
+      "target_node": "comms",
+      "cost_m": 1.5,
+      "reduction_factor": 0.25,
+      "impact": "Dynamically bypasses severed nodes and prevents packet congestion during emergency traffic spikes."
+    },
+    {
+      "id": "fix_16",
+      "title": "Abutment Soil Nailing & Column Jacket Retrofit",
+      "category": "Civil",
+      "target_node": "bridge_approach",
+      "cost_m": 22.0,
+      "reduction_factor": 0.45,
+      "impact": "Prevents approach ramp collapse and embankment slumping during strong ground shaking."
+    },
+    {
+      "id": "fix_17",
+      "title": "Restrainer Cables & Viscous Fluid Dampers",
+      "category": "Hardware",
+      "target_node": "bridge_approach",
+      "cost_m": 11.0,
+      "reduction_factor": 0.35,
+      "impact": "prevents span unseating at expansion joints by dissipating longitudinal seismic energy."
+    },
+    {
+      "id": "fix_18",
+      "title": "Automated Seismic Gate & Load Metering System",
+      "category": "Software",
+      "target_node": "bridge_approach",
+      "cost_m": 2.0,
+      "reduction_factor": 0.2,
+      "impact": "Halts incoming traffic immediately upon detecting structural over-strain to prevent secondary collapse."
+    },
+    {
+      "id": "fix_19",
+      "title": "Pier Piling Jacket Retrofit & Deck Elevation",
+      "category": "Civil",
+      "target_node": "ferry_terminal",
+      "cost_m": 18.0,
+      "reduction_factor": 0.42,
+      "impact": "Prevents batter pile buckling under seismic loads and terminal deck submergence during king tides."
+    },
+    {
+      "id": "fix_20",
+      "title": "Articulated Telescoping Gangways & Moorings",
+      "category": "Hardware",
+      "target_node": "ferry_terminal",
+      "cost_m": 7.0,
+      "reduction_factor": 0.32,
+      "impact": "Accommodates extreme vertical tide swings and seismic surge without detaching vessel boarding ramps."
+    },
+    {
+      "id": "fix_21",
+      "title": "Vessel Berth Allocation & Surge Forecasting",
+      "category": "Software",
+      "target_node": "ferry_terminal",
+      "cost_m": 1.5,
+      "reduction_factor": 0.18,
+      "impact": "Optimizes emergency ferry docking schedules around tidal peaks and damaged pier slips."
+    },
+    {
+      "id": "fix_22",
+      "title": "Embarcadero Liquefaction Compaction Grouting",
+      "category": "Civil",
+      "target_node": "evac_roads",
+      "cost_m": 16.0,
+      "reduction_factor": 0.4,
+      "impact": "Prevents roadway sinkholes and lateral spreading along primary waterfront evacuation corridors."
+    },
+    {
+      "id": "fix_23",
+      "title": "Solar-Powered Smart Signage & Dewatering Pumps",
+      "category": "Hardware",
+      "target_node": "evac_roads",
+      "cost_m": 6.0,
+      "reduction_factor": 0.3,
+      "impact": "Clears localized tidal flooding from underpasses and maintains lane guidance without grid power."
+    },
+    {
+      "id": "fix_24",
+      "title": "AI Dynamic Contraflow & Debris Routing",
+      "category": "Software",
+      "target_node": "evac_roads",
+      "cost_m": 2.5,
+      "reduction_factor": 0.25,
+      "impact": "Reroutes evacuation traffic in real time around collapsed soft-story building debris and flooded zones."
+    },
+    {
+      "id": "fix_25",
+      "title": "Waterfront Soft-Story Building Bracing Program",
+      "category": "Civil",
+      "target_node": "evac_roads",
+      "cost_m": 12.0,
+      "reduction_factor": 0.3,
+      "impact": "Prevents adjacent unreinforced masonry and soft-story structures from collapsing onto evacuation routes."
+    },
+    {
+      "id": "fix_26",
+      "title": "Submersible Sump Pumps & Saltwater Barriers",
+      "category": "Hardware",
+      "target_node": "substations",
+      "cost_m": 4.0,
+      "reduction_factor": 0.22,
+      "impact": "Actively expels seeping king tide water from underground electrical vaults and cable trenches."
+    },
+    {
+      "id": "fix_27",
+      "title": "Mobile Emergency Substation Pre-Positioning",
+      "category": "Hardware",
+      "target_node": "water_pump",
+      "cost_m": 5.0,
+      "reduction_factor": 0.25,
+      "impact": "Provides dedicated plug-and-play high-voltage power to water pumps if main substation feeders sever."
+    },
+    {
+      "id": "fix_28",
+      "title": "Emergency Fuel Rationing & Telemetry System",
+      "category": "Software",
+      "target_node": "fuel_terminal",
+      "cost_m": 1.0,
+      "reduction_factor": 0.15,
+      "impact": "Prioritizes remaining fuel reserves to critical water pumps and emergency generators during supply disruption."
+    }
+  ],
+  "narrative": "In a compound magnitude 7.2 earthquake and 7-foot king tide scenario, failure cascades outward from the perimeter seawall and electric substations. Breaching the seawall exposes substations, fuel handling, the ferry terminal, and evacuation routes, while substation outages cripple communications and high-pressure water pumps. The $958M 1-in-100 tail loss (VaR99) is driven by compound failures where simultaneous seawall, substation, and bridge approach disruptions sever downstream evacuation roads and firefighting water pumps, which suffer the highest baseline failure probabilities at 23.3% and 21.3%. The proposed portfolio breaks this chain by stabilizing the seawall via jet grouting and floodgates, hardening substations with elevation, base isolation, and microgrid islanding, and adding redundant backup power, flexible joints, and soil stabilization to critical downstream lifelines. Note that this model is a stylized demo, not an engineering estimate."
+}
