@@ -11,6 +11,10 @@ npm run dev
 
 Run `npm run check` for the deterministic simulation and data checks, then `npm run build` for a production bundle.
 
+## Cinematic video
+
+The [Ferry Building tsunami video](public/videos/hackathon-window-to-tsunami-extended.mp4) is a fictional, AI-generated 13.8-second clip made with Gemini Omni Flash. It starts in the hackathon room, moves toward the Bay Bridge, turns toward the Ferry Building, and follows the wave moving from the bay onto shore. The clip is a visual concept, not a physical hazard simulation.
+
 ## Data and scene
 
 The scene contains 3,759 building footprints with LiDAR-derived median heights from [DataSF Building Footprints](https://data.sf.gov/d/ynuv-fyni) and 1,101 active segments from [DataSF Streets – Active and Retired](https://data.sf.gov/d/3psu-pn9h), collected October 25, 2026. The source query selects a rectangle around the Ferry Building and the build script retains footprints within roughly one mile. `public/data/scene.json` contains projected, simplified local coordinates. The San Francisco coastline, Ferry Building tower, Bay Bridge span, and infrastructure failure node markers are schematic visual aids. No private facility data is included.
