@@ -7,9 +7,7 @@ working.
 Bake the files into `public/data/`:
 
 ```bash
-cd backend
-uv run python scripts/bake_contract.py                                # interim buildings.json from scene.json
-uv run python scripts/bake_contract.py --buildings ../path/buildings.json   # key to the frontend bake
+npm run bake:damage    # = cd backend && uv run python scripts/bake_contract.py
 ```
 
 The run fails, and writes nothing, if any invariant is violated.
@@ -22,7 +20,7 @@ The run fails, and writes nothing, if any invariant is violated.
 | Flood fixes and the water visual | Water stays unmitigated. The seawall fix only lowers flood depth for buildings in its zones. |
 | Zones | DataSF Analysis Neighborhoods, assigned by building centroid. A building outside every polygon (piers, fill) goes to the nearest one. |
 | Price year | 2026 |
-| Five files | `buildings.json` is the fifth. Until the frontend bake exists, the backend writes an interim one keyed to `public/data/scene.json` order, wrapped as `{schema_version, seed, generated_at, buildings: [...]}`. With `--buildings` the backend never overwrites the frontend's file. |
+| Five files | `buildings.json` is the fifth. The frontend bake (`tools/bake_district.mjs`) owns it. The backend reads it (`centroid` or `centroid_enu_m`; `lonlat` derived when absent) and never writes it. Re-run `npm run bake:damage` whenever it changes. |
 | Determinism | Same inputs and seed give identical files, except `generated_at` and the elapsed `t_s` in `pipeline_events.json` |
 
 ## Added fields
@@ -52,6 +50,8 @@ The run fails, and writes nothing, if any invariant is violated.
 - Infrastructure: the 8-node cascade from `docs/api.md`, run on the same number of draws and with the same seed for every combo.
 
 ## Not done yet
+
+- The current `public/data/buildings.json` is the frontend's procedural placeholder (2,439 buildings). Its positions and elevations are not DataSF footprints, so damage results are only as real as that district. Run `npm run bake:real`, then `npm run bake:damage`.
 
 - The CGS Tsunami Hazard Area polygon is not used as the wet extent. Its ArcGIS service requires a token, so the extent comes from the heuristic above.
 - Gemini does not yet supply archetype fragility, fix text or rationale. All of these come from built-in tables, and every archetype is `evidence: "inferred"`.

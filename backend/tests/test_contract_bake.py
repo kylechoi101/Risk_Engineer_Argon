@@ -9,17 +9,20 @@ from argon.contract.check import violations
 from argon.data.snapshot import load_snapshot
 
 ROOT = Path(__file__).resolve().parents[2]
-SCENE = json.loads((ROOT / "public/data/scene.json").read_text())
+FRONTEND_BUILDINGS = json.loads((ROOT / "public/data/buildings.json").read_text())
 HOODS = json.loads((ROOT / "backend/data/neighborhoods.json").read_text())["neighborhoods"]
 
 
-def small_scene():
-    return {**SCENE, "buildings": SCENE["buildings"][::12]}
+def small_district():
+    """Every 8th building of the frontend bake, renumbered 0..N-1 like a real bake."""
+    picked = FRONTEND_BUILDINGS["buildings"][::8]
+    return {**FRONTEND_BUILDINGS, "building_count": len(picked),
+            "buildings": [{**b, "id": i} for i, b in enumerate(picked)]}
 
 
 @pytest.fixture(scope="module")
 def docs():
-    return bake(small_scene(), load_snapshot(), HOODS, draws=200)
+    return bake(load_snapshot(), HOODS, small_district(), draws=200)
 
 
 def test_bake_passes_every_frontend_invariant(docs):
@@ -34,8 +37,8 @@ def test_bake_is_deterministic_apart_from_timestamps():
                 doc.pop("generated_at", None)
         d.pop("pipeline_events.json")
         return d
-    a = bake(small_scene(), load_snapshot(), HOODS, draws=100)
-    b = bake(small_scene(), load_snapshot(), HOODS, draws=100)
+    a = bake(load_snapshot(), HOODS, small_district(), draws=100)
+    b = bake(load_snapshot(), HOODS, small_district(), draws=100)
     assert strip(a) == strip(b)
 
 
@@ -56,3 +59,9 @@ def test_checker_catches_a_fix_that_makes_things_worse(docs):
     broken["buildings_damage.json"]["outcomes"]["0"]["state"][0] = 0
     assert any(v.startswith("3:") for v in violations(broken))
     assert np.array(state).max() == 4
+
+
+def test_reads_the_frontend_bake_shape_and_never_rewrites_it(docs):
+    district = small_district()
+    assert docs["buildings.json"] == district  # passed through untouched, only used for checks
+    assert docs["buildings_damage.json"]["building_ids"] == [b["id"] for b in district["buildings"]]

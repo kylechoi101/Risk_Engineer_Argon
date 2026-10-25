@@ -48,7 +48,7 @@ hazard zones and NOAA datums for a 2.5 km circle around the Ferry Building, coll
 ## Parity with the browser engine
 
 `tests/fixtures/js_golden.json` holds outputs from `../src/simulation.js`. The Python engine must
-match them exactly. If the JS model changes, regenerate the fixture with
-`node scripts/js_golden.mjs > tests/fixtures/js_golden.json`.
+match them exactly. The browser engine was removed when the React frontend replaced the Vite app, so the fixture is now a
+frozen regression guard. `scripts/js_golden.mjs` needs `src/simulation.js` from git history (`git show 764ae36:src/simulation.js`).
 
 All model parameters are illustrative assumptions. This is a demo, not an engineering tool.

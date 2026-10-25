@@ -1,0 +1,230 @@
+{
+  "fixes": [
+    {
+      "id": "FIX_SW_01",
+      "title": "Jet-Grouted Soil Liquefaction Barrier",
+      "category": "Civil",
+      "target_node": "seawall",
+      "cost_m": 45.0,
+      "reduction_factor": 0.42,
+      "impact": "Prevents lateral spreading and foundational collapse of the historic rock dike during M7.2 ground shaking."
+    },
+    {
+      "id": "FIX_SW_02",
+      "title": "Automated Pneumatic Floodgate Array",
+      "category": "Hardware",
+      "target_node": "seawall",
+      "cost_m": 18.0,
+      "reduction_factor": 0.28,
+      "impact": "Blocks 13-foot king tide plus storm surge overtopping along low-lying Embarcadero promenade breaches."
+    },
+    {
+      "id": "FIX_SW_03",
+      "title": "Pore-Pressure Telemetry & Active Dewatering Control",
+      "category": "Software",
+      "target_node": "seawall",
+      "cost_m": 3.5,
+      "reduction_factor": 0.14,
+      "impact": "Pre-drains fill soils ahead of predicted storm surges to reduce hydrostatic pressure and liquefaction susceptibility."
+    },
+    {
+      "id": "FIX_SW_04",
+      "title": "Seismic Micropile Tieback Anchoring",
+      "category": "Civil",
+      "target_node": "seawall",
+      "cost_m": 28.0,
+      "reduction_factor": 0.31,
+      "impact": "Anchors the bulkhead wall directly into Franciscan bedrock to resist seismic earth pressures."
+    },
+    {
+      "id": "FIX_SUB_01",
+      "title": "Elevated Floodwall & Friction-Pendulum Base Isolation",
+      "category": "Civil",
+      "target_node": "substations",
+      "cost_m": 22.0,
+      "reduction_factor": 0.36,
+      "impact": "Decouples high-voltage switchgear from seismic shear waves while blocking coastal inundation."
+    },
+    {
+      "id": "FIX_SUB_02",
+      "title": "Grid-Forming BESS & Flexible Busbar Connectors",
+      "category": "Hardware",
+      "target_node": "substations",
+      "cost_m": 16.0,
+      "reduction_factor": 0.32,
+      "impact": "Prevents rigid porcelain bushing snapping during earthquakes and provides 12-hour black-start islanding."
+    },
+    {
+      "id": "FIX_SUB_03",
+      "title": "Automated Microgrid Islanding & Fault Isolation SCADA",
+      "category": "Software",
+      "target_node": "substations",
+      "cost_m": 4.0,
+      "reduction_factor": 0.22,
+      "impact": "Sheds non-critical load in milliseconds to prevent cascading transformer trips from seawater short-circuits."
+    },
+    {
+      "id": "FIX_FUEL_01",
+      "title": "Seismic-Rated Secondary Containment & Pile Jacket",
+      "category": "Civil",
+      "target_node": "fuel_terminal",
+      "cost_m": 19.0,
+      "reduction_factor": 0.34,
+      "impact": "Prevents storage tank uplift during storm surge and stops differential settlement during soil liquefaction."
+    },
+    {
+      "id": "FIX_FUEL_02",
+      "title": "Multi-Axis Flexible Bellows & Emergency Shutoff Valves",
+      "category": "Hardware",
+      "target_node": "fuel_terminal",
+      "cost_m": 8.5,
+      "reduction_factor": 0.27,
+      "impact": "Accommodates up to 24 inches of ground displacement without rupturing fuel transfer pipelines."
+    },
+    {
+      "id": "FIX_FUEL_03",
+      "title": "Real-Time Acoustic Leak Detection & Slosh Damping Control",
+      "category": "Software",
+      "target_node": "fuel_terminal",
+      "cost_m": 2.5,
+      "reduction_factor": 0.16,
+      "impact": "Automatically balances tank levels prior to hazards and isolates pressure drops instantly upon P-wave detection."
+    },
+    {
+      "id": "FIX_WP_01",
+      "title": "Subterranean Thrust-Block & Waterproof Vault Retrofit",
+      "category": "Civil",
+      "target_node": "water_pump",
+      "cost_m": 20.0,
+      "reduction_factor": 0.35,
+      "impact": "Keeps high-pressure fire suppression pump rooms dry during coastal flooding and stabilizes discharge headers."
+    },
+    {
+      "id": "FIX_WP_02",
+      "title": "Dual-Fuel Turbine Direct-Drive Pump Conversion",
+      "category": "Hardware",
+      "target_node": "water_pump",
+      "cost_m": 14.0,
+      "reduction_factor": 0.33,
+      "impact": "Eliminates reliance on vulnerable electric substations by running pumps on independent pressurized natural gas and diesel."
+    },
+    {
+      "id": "FIX_WP_03",
+      "title": "AI Hydraulic Transient & Rupture Isolation Controller",
+      "category": "Software",
+      "target_node": "water_pump",
+      "cost_m": 3.0,
+      "reduction_factor": 0.19,
+      "impact": "Reroutes water pressure dynamically around broken mains to prevent pump cavitation and pressure loss."
+    },
+    {
+      "id": "FIX_COM_01",
+      "title": "Hardened Conduit Ductbank & Elevated Equipment Shelter",
+      "category": "Civil",
+      "target_node": "comms",
+      "cost_m": 12.0,
+      "reduction_factor": 0.29,
+      "impact": "Protects fiber optic trunk lines from shear-zone trench failure and elevates core routers above flood levels."
+    },
+    {
+      "id": "FIX_COM_02",
+      "title": "72-Hour Hydrogen Fuel Cell & Free-Space Optical Mesh",
+      "category": "Hardware",
+      "target_node": "comms",
+      "cost_m": 9.0,
+      "reduction_factor": 0.3,
+      "impact": "Maintains high-bandwidth line-of-sight links and local power even if underground cables and substations fail."
+    },
+    {
+      "id": "FIX_COM_03",
+      "title": "SD-WAN Autonomous Satellite Failover Protocol",
+      "category": "Software",
+      "target_node": "comms",
+      "cost_m": 2.0,
+      "reduction_factor": 0.21,
+      "impact": "Reroutes emergency telemetry through LEO satellite constellations within sub-seconds of terrestrial fiber cut."
+    },
+    {
+      "id": "FIX_BR_01",
+      "title": "Abutment Soil Nailing & Liquefaction Stone Columns",
+      "category": "Civil",
+      "target_node": "bridge_approach",
+      "cost_m": 30.0,
+      "reduction_factor": 0.38,
+      "impact": "Densifies approach embankment soils to prevent vertical slumping and hinge-joint unseating during an M7.2 quake."
+    },
+    {
+      "id": "FIX_BR_02",
+      "title": "Magnetorheological Fluid Dampers & Shape-Memory Restrainers",
+      "category": "Hardware",
+      "target_node": "bridge_approach",
+      "cost_m": 15.0,
+      "reduction_factor": 0.29,
+      "impact": "Absorbs seismic kinetic energy and recenter expansion joints to keep approach decks drivable."
+    },
+    {
+      "id": "FIX_BR_03",
+      "title": "Structural Health Monitoring & Automated Lane Gating",
+      "category": "Software",
+      "target_node": "bridge_approach",
+      "cost_m": 2.5,
+      "reduction_factor": 0.15,
+      "impact": "Uses real-time accelerometer arrays to verify span integrity immediately post-quake and open safe lanes without manual inspection."
+    },
+    {
+      "id": "FIX_FT_01",
+      "title": "Seismic Batter-Pile Retrofit & Wave-Attenuating Breakwater",
+      "category": "Civil",
+      "target_node": "ferry_terminal",
+      "cost_m": 26.0,
+      "reduction_factor": 0.37,
+      "impact": "Dissipates storm surge wave energy and prevents pier deck collapse when the adjacent seawall slumps."
+    },
+    {
+      "id": "FIX_FT_02",
+      "title": "Telescoping Articulated Gangways & High-Freeboard Pontoons",
+      "category": "Hardware",
+      "target_node": "ferry_terminal",
+      "cost_m": 13.0,
+      "reduction_factor": 0.31,
+      "impact": "Allows evacuation vessels to berth safely during extreme 13-foot king tides and multi-axis seismic movement."
+    },
+    {
+      "id": "FIX_FT_03",
+      "title": "VHF-AIS Autonomous Berthing & Passenger Flow Control",
+      "category": "Software",
+      "target_node": "ferry_terminal",
+      "cost_m": 2.0,
+      "reduction_factor": 0.18,
+      "impact": "Coordinates high-frequency marine evacuation turnarounds without relying on centralized terminal communications."
+    },
+    {
+      "id": "FIX_EV_01",
+      "title": "Cellular Glass Aggregate Roadbed & Curb Floodwalls",
+      "category": "Civil",
+      "target_node": "evac_roads",
+      "cost_m": 24.0,
+      "reduction_factor": 0.35,
+      "impact": "Replaces heavy liquefiable fill under the Embarcadero roadway with buoyant, non-settling structural backfill."
+    },
+    {
+      "id": "FIX_EV_02",
+      "title": "Solar-Powered Retractable Median Barriers & Flood Pumps",
+      "category": "Hardware",
+      "target_node": "evac_roads",
+      "cost_m": 10.0,
+      "reduction_factor": 0.26,
+      "impact": "Clears physical bottlenecks for contraflow routing and actively pumps overtopped seawater off critical intersections."
+    },
+    {
+      "id": "FIX_EV_03",
+      "title": "Decentralized V2X Contraflow & Debris-Routing AI",
+      "category": "Software",
+      "target_node": "evac_roads",
+      "cost_m": 3.5,
+      "reduction_factor": 0.22,
+      "impact": "Ingests drone and roadside sensor feeds to dynamically switch traffic signals and route around collapsed soft-story debris."
+    }
+  ],
+  "narrative": "In this stylized demo\u2014which is not an engineering estimate\u2014a magnitude 7.2 earthquake coupled with a 13.06-foot MLLW king tide and storm surge initiates a cascade at the Perimeter Seawall. Seawall breaches directly compromise electric substations, fuel handling, and transport links. Substation loss then propagates failure to the communications hub and high-pressure water pumps, while degraded fuel, communications, and bridge approaches compound to sever the ferry terminal and evacuation roads. The 1-in-100 tail ($1,175M VaR99) is driven by systemic collapse when initial seawall and substation failures trigger near-total loss of downstream fire suppression and evacuation capacity. Proposed fixes break this chain by hardening the seawall against liquefaction and overtopping, isolating and islanding substations, and adding localized redundancies like backup power, flexible couplings, and autonomous failovers across downstream nodes."
+}

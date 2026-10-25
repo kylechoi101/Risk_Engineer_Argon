@@ -53,23 +53,16 @@ def _enu(lat: float, lon: float) -> list[float]:
     return [round((lon - ORIGIN[1]) * m_per_deg_lon(), 1), round((lat - ORIGIN[0]) * _M_PER_DEG_LAT, 1)]
 
 
-def buildings_from_scene(scene: dict) -> list[dict]:
-    """Interim buildings.json in contract shape, keyed to public/data/scene.json order."""
+def normalize_buildings(raw: dict | list) -> list[dict]:
+    """Accept the frontend bake ({buildings: [...]} with `centroid`) or contract v1 records."""
+    items = raw["buildings"] if isinstance(raw, dict) else raw
     out = []
-    for i, (ring, height, ground) in enumerate(scene["buildings"]):
-        pts = ring[:-1] if ring[0] == ring[-1] else ring
-        east = sum(p[0] for p in pts) / len(pts)
-        north = sum(p[1] for p in pts) / len(pts)
-        area = abs(sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(ring, ring[1:], strict=False))) / 2
-        out.append({
-            "id": i, "source_id": None, "lonlat": _lonlat(east, north),
-            "centroid_enu_m": [round(east, 1), round(north, 1)],
-            "footprint_area_m2": round(area, 1), "height_m": height,
-            "stories": max(1, round(height / 3.6)), "year_built": None, "material": None, "use": None,
-            "ground_elevation_m": ground,
-            "data_quality": {"height_m": "lidar", "stories": "inferred_from_height",
-                             "year_built": "missing", "material": "missing", "use": "missing"},
-        })
+    for b in items:
+        east, north = b.get("centroid_enu_m") or b["centroid"]
+        height = float(b.get("height_m") or 12.0)
+        out.append({**b, "centroid_enu_m": [float(east), float(north)],
+                    "lonlat": b.get("lonlat") or _lonlat(east, north), "height_m": height,
+                    "stories": b.get("stories") or max(1, round(height / 3.6))})
     return out
 
 
@@ -188,7 +181,7 @@ def _pct(values: np.ndarray) -> dict:
     return {"p10": round(float(p10), 0), "p50": round(float(p50), 0), "p90": round(float(p90), 0)}
 
 
-def bake(scene: dict, snapshot: dict, neighborhoods: list[dict], buildings: list[dict] | None = None,
+def bake(snapshot: dict, neighborhoods: list[dict], buildings_input: dict | list,
          *, seed: int = 20261025, draws: int = 2000, magnitude: float = 7.0,
          tide_ft_mllw: float = 7.0, run_up_m: float = 2.0) -> dict[str, object]:
     t0 = time.perf_counter()
@@ -204,22 +197,18 @@ def bake(scene: dict, snapshot: dict, neighborhoods: list[dict], buildings: list
 
     # --- gov_data: buildings, hazard areas, inventories, neighborhoods
     log("gov_data", "running", "Loading buildings and allowlisted government layers")
-    buildings = buildings or buildings_from_scene(scene)
-    if isinstance(buildings, dict):  # accept {"buildings": [...]} or a bare list
-        buildings = buildings["buildings"]
+    buildings = normalize_buildings(buildings_input)
     n = len(buildings)
     xy = np.array([b["centroid_enu_m"] for b in buildings], dtype=float)
     ground = np.array([b["ground_elevation_m"] for b in buildings], dtype=float)
-    stories = np.array([b["stories"] or max(1, round(b["height_m"] / 3.6)) for b in buildings])
+    stories = np.array([b["stories"] for b in buildings])
     in_hazard = np.array([any(in_multipolygon(b["lonlat"][0], b["lonlat"][1], z["coordinates"])
                               for z in snapshot["zones"]) for b in buildings])
     soft_open = np.zeros(n, dtype=bool)
-    soft_xy = np.array([s["xy"] for s in scene.get("softStory", [])], dtype=float).reshape(-1, 2)
-    if len(soft_xy):
-        hit = _nearest(xy, soft_xy, 25.0)
-        for k, s in enumerate(scene["softStory"]):
-            if hit[k] >= 0 and "Work Complete" not in s["status"]:
-                soft_open[hit[k]] = True
+    soft_points = [s for s in snapshot["soft_story"] if s["open"]]
+    if soft_points:
+        hit = _nearest(xy, np.array([_enu(s["lat"], s["lon"]) for s in soft_points]), 25.0)
+        soft_open[hit[hit >= 0]] = True
     archetype_idx = np.array([classify(int(s), bool(h), bool(o))
                               for s, h, o in zip(stories, in_hazard, soft_open, strict=True)])
     zones, zone_idx = _zones(buildings, neighborhoods)
@@ -455,5 +444,5 @@ def bake(scene: dict, snapshot: dict, neighborhoods: list[dict], buildings: list
             "edges": [{"from": up, "to": nd.id, "weight": w} for nd in NODES for up, w in nd.deps.items()],
         },
     }
-    return {"buildings.json": {**header, "buildings": buildings}, "scenario.json": scenario,
+    return {"buildings.json": buildings_input, "scenario.json": scenario,
             "buildings_damage.json": damage, "summary.json": summary, "pipeline_events.json": events}

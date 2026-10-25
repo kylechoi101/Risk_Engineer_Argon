@@ -1,0 +1,248 @@
+{
+  "fixes": [
+    {
+      "id": "FIX-01",
+      "title": "Deep Soil Mixing Seawall Stabilization",
+      "category": "Civil",
+      "target_node": "seawall",
+      "cost_m": 65.0,
+      "reduction_factor": 0.52,
+      "impact": "Prevents liquefaction-induced lateral spreading of the historic rock dike and bulkhead wall during seismic shaking."
+    },
+    {
+      "id": "FIX-02",
+      "title": "Modular Crest Parapet Extension",
+      "category": "Civil",
+      "target_node": "seawall",
+      "cost_m": 22.0,
+      "reduction_factor": 0.35,
+      "impact": "Blocks overtopping from the combined 17.32 ft MLLW king tide and storm surge wave run-up."
+    },
+    {
+      "id": "FIX-03",
+      "title": "Automated Pneumatic Floodgate Array",
+      "category": "Hardware",
+      "target_node": "seawall",
+      "cost_m": 15.0,
+      "reduction_factor": 0.28,
+      "impact": "Automatically seals pedestrian and vehicular gaps along the Embarcadero promenade when water levels exceed MHHW."
+    },
+    {
+      "id": "FIX-04",
+      "title": "Piezometric & Inclinometer Telemetry Array",
+      "category": "Software",
+      "target_node": "seawall",
+      "cost_m": 2.5,
+      "reduction_factor": 0.14,
+      "impact": "Detects real-time pore-pressure buildup in fill soils to trigger preemptive load-shedding on adjacent wharf structures."
+    },
+    {
+      "id": "FIX-05",
+      "title": "Elevated Steel Frame Substation Platform",
+      "category": "Civil",
+      "target_node": "substations",
+      "cost_m": 28.0,
+      "reduction_factor": 0.45,
+      "impact": "Raises critical switchgear and control houses above the 5.3m NAVD88 extreme flood inundation plane."
+    },
+    {
+      "id": "FIX-06",
+      "title": "Base-Isolated Gas-Insulated Switchgear",
+      "category": "Hardware",
+      "target_node": "substations",
+      "cost_m": 19.0,
+      "reduction_factor": 0.38,
+      "impact": "Prevents porcelain bushing shear and saltwater short-circuiting through sealed, seismically isolated enclosures."
+    },
+    {
+      "id": "FIX-07",
+      "title": "Automated Microgrid Islanding Control",
+      "category": "Software",
+      "target_node": "substations",
+      "cost_m": 3.5,
+      "reduction_factor": 0.24,
+      "impact": "Isolates flooded waterfront feeders within milliseconds to prevent cascading arc-fault trips across the downtown grid."
+    },
+    {
+      "id": "FIX-08",
+      "title": "Submersible Sump & Perimeter Berm Retrofit",
+      "category": "Civil",
+      "target_node": "substations",
+      "cost_m": 9.0,
+      "reduction_factor": 0.22,
+      "impact": "Retains and pumps out localized breach water before it reaches transformer yard busbars."
+    },
+    {
+      "id": "FIX-09",
+      "title": "Pile-Supported Articulated Floating Ramps",
+      "category": "Civil",
+      "target_node": "ferry_terminal",
+      "cost_m": 32.0,
+      "reduction_factor": 0.48,
+      "impact": "Maintains gangway structural integrity and boarding geometry during extreme 17+ ft surge elevations and seismic ground motion."
+    },
+    {
+      "id": "FIX-10",
+      "title": "High-Freeboard Guide Dolphin Extension",
+      "category": "Civil",
+      "target_node": "ferry_terminal",
+      "cost_m": 14.0,
+      "reduction_factor": 0.3,
+      "impact": "Prevents landing barges from floating off their guide piles at peak king tide plus storm surge."
+    },
+    {
+      "id": "FIX-11",
+      "title": "Independent Solar-Storage Microgrid & Hoists",
+      "category": "Hardware",
+      "target_node": "ferry_terminal",
+      "cost_m": 11.0,
+      "reduction_factor": 0.32,
+      "impact": "Keeps hydraulic boarding ramps and maritime beacons operational when primary substation power fails."
+    },
+    {
+      "id": "FIX-12",
+      "title": "Automated Vessel Berthing & Surge Telemetry",
+      "category": "Software",
+      "target_node": "ferry_terminal",
+      "cost_m": 2.0,
+      "reduction_factor": 0.16,
+      "impact": "Provides real-time hydrodynamic clearance models to captains when landside comms and visual aids are degraded."
+    },
+    {
+      "id": "FIX-13",
+      "title": "Embarcadero Liquefaction Relief Drains & Micro-Piles",
+      "category": "Civil",
+      "target_node": "evac_roads",
+      "cost_m": 25.0,
+      "reduction_factor": 0.42,
+      "impact": "Mitigates soil settlement and pavement buckling over historic bay mud fill zones along primary egress corridors."
+    },
+    {
+      "id": "FIX-14",
+      "title": "High-Capacity Storm Drain Backflow & Pump Stations",
+      "category": "Hardware",
+      "target_node": "evac_roads",
+      "cost_m": 13.0,
+      "reduction_factor": 0.31,
+      "impact": "Stops bay water from surging backward up stormwater outfalls onto low-lying Embarcadero roadway lanes."
+    },
+    {
+      "id": "FIX-15",
+      "title": "Dynamic Seismic-Flood Corridor Routing System",
+      "category": "Software",
+      "target_node": "evac_roads",
+      "cost_m": 3.0,
+      "reduction_factor": 0.22,
+      "impact": "Synchronizes battery-backed traffic signals and digital signage to route traffic around flooded low-ground blocks and soft-story debris."
+    },
+    {
+      "id": "FIX-16",
+      "title": "Dual-Fuel Turbine Generators for AWSS Pumps",
+      "category": "Hardware",
+      "target_node": "water_pump",
+      "cost_m": 12.0,
+      "reduction_factor": 0.38,
+      "impact": "Eliminates single-point dependency on grid substations or external fuel deliveries during post-earthquake firefighting."
+    },
+    {
+      "id": "FIX-17",
+      "title": "Flexible Ball-Joint Suction & Discharge Manifolds",
+      "category": "Civil",
+      "target_node": "water_pump",
+      "cost_m": 15.0,
+      "reduction_factor": 0.35,
+      "impact": "Accommodates differential ground displacement at the bay water intake tunnel without shearing high-pressure cast-iron mains."
+    },
+    {
+      "id": "FIX-18",
+      "title": "Automated Pressure-Transient & Leak Isolation SCADA",
+      "category": "Software",
+      "target_node": "water_pump",
+      "cost_m": 2.5,
+      "reduction_factor": 0.21,
+      "impact": "Automatically throttles pumps and closes motorized district valves to prevent water hammer and reservoir depletion from broken mains."
+    },
+    {
+      "id": "FIX-19",
+      "title": "Seismic Restraint & Secondary Containment Dikes",
+      "category": "Civil",
+      "target_node": "fuel_terminal",
+      "cost_m": 16.0,
+      "reduction_factor": 0.38,
+      "impact": "Anchors storage tanks against buoyant uplift during storm surge and contains spills if piping shears."
+    },
+    {
+      "id": "FIX-20",
+      "title": "Bellows-Style Flexible Pipe Couplings & ESD Valves",
+      "category": "Hardware",
+      "target_node": "fuel_terminal",
+      "cost_m": 8.5,
+      "reduction_factor": 0.3,
+      "impact": "Absorbs up to 24 inches of lateral ground shift at tank manifold connections and triggers positive shutoff upon loss of pressure."
+    },
+    {
+      "id": "FIX-21",
+      "title": "AI Acoustic Pipeline Integrity Monitor",
+      "category": "Software",
+      "target_node": "fuel_terminal",
+      "cost_m": 1.8,
+      "reduction_factor": 0.17,
+      "impact": "Detects micro-leaks and pressure drops immediately after a tremor to isolate damaged transfer lines before ignition."
+    },
+    {
+      "id": "FIX-22",
+      "title": "Abutment Soil Nail Wall & Approach Slab Retrofit",
+      "category": "Civil",
+      "target_node": "bridge_approach",
+      "cost_m": 24.0,
+      "reduction_factor": 0.4,
+      "impact": "Prevents vertical offset and embankment slumping at the transition between cellular fill and pile-supported bridge decks."
+    },
+    {
+      "id": "FIX-23",
+      "title": "Seismic Damper & Expansion Joint Upgrade",
+      "category": "Hardware",
+      "target_node": "bridge_approach",
+      "cost_m": 11.5,
+      "reduction_factor": 0.29,
+      "impact": "Dissipates seismic energy across ramp hinge joints to prevent unseating and maintain emergency vehicle access."
+    },
+    {
+      "id": "FIX-24",
+      "title": "Automated Structural Health & Ramp Metering Control",
+      "category": "Software",
+      "target_node": "bridge_approach",
+      "cost_m": 2.2,
+      "reduction_factor": 0.18,
+      "impact": "Uses accelerometer arrays to verify span safety within seconds of an earthquake and regulates ramp loading."
+    },
+    {
+      "id": "FIX-25",
+      "title": "Watertight Vault Hardening & Rooftop Relocation",
+      "category": "Civil",
+      "target_node": "comms",
+      "cost_m": 9.5,
+      "reduction_factor": 0.34,
+      "impact": "Moves fiber-optic regeneration hardware and core routers out of basement flood zones into seismically braced upper floors."
+    },
+    {
+      "id": "FIX-26",
+      "title": "72-Hour Hydrogen Fuel Cell & Satellite Backhaul",
+      "category": "Hardware",
+      "target_node": "comms",
+      "cost_m": 7.5,
+      "reduction_factor": 0.33,
+      "impact": "Provides grid-independent power and non-terrestrial data uplinks if underground fiber conduits and substations fail."
+    },
+    {
+      "id": "FIX-27",
+      "title": "SDN Mesh Auto-Rerouting & Priority QoS",
+      "category": "Software",
+      "target_node": "comms",
+      "cost_m": 2.0,
+      "reduction_factor": 0.22,
+      "impact": "Automatically shifts emergency telemetry and first-responder traffic onto surviving microwave and mesh pathways during fiber cuts."
+    }
+  ],
+  "narrative": "In this stylized demo\u2014which is not an engineering estimate\u2014a magnitude 5.5 earthquake coupled with a 17.32-foot compound storm tide initiates a severe cascade across the waterfront network. Perimeter seawall breaches (49% probability) directly compromise electric substations (53%), fuel handling, and bridge approaches. Power loss then propagates through high dependency weights to disable high-pressure water pumps and communications, culminating in widespread failure of the multi-dependent ferry terminal (71%) and evacuation roads (61%). These compounding downstream outages drive the 1-in-100 tail risk of $1.28 billion VaR. The proposed fixes break this chain at the source through deep soil mixing, parapet extensions, and pneumatic floodgates at the seawall, while elevated, base-isolated substations and local microgrids decouple critical lifelines from cascading outages."
+}
