@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#08121d" />
+    <meta name="description" content="Argon Risk: an interactive San Francisco waterfront disaster and resilience simulator." />
+    <title>Argon Risk — SF Waterfront Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark"><span></span><span></span><span></span></span><div><strong>ARGON<span>RISK</span></strong><small>INFRASTRUCTURE INTELLIGENCE</small></div></div>
+        <div class="header-center"><span class="orange-dot"></span><span>SF WATERFRONT DIGITAL TWIN</span><i></i><span>FERRY BUILDING · BAY BRIDGE</span></div>
+        <div class="header-right"><span class="engine-pill"><span class="pulse-dot"></span> MODEL ONLINE</span><button id="aboutBtn" class="icon-text-btn">ⓘ <span>About this model</span></button></div>
+      </header>
+
+      <main class="workspace">
+        <aside class="scenario-panel panel">
+          <div class="panel-heading"><div><span class="eyebrow">01 / SCENARIO DESIGNER</span><h1>Stress the<br /><em>waterfront.</em></h1></div><span class="corner-glyph">✳</span></div>
+          <p class="intro">Layer seismic shaking and coastal water rise to expose cascading infrastructure failures.</p>
+          <div class="section-rule"></div>
+          <div class="control-label"><span>QUICK SCENARIOS</span><span class="hint">SELECT ONE</span></div>
+          <div class="presets" role="group" aria-label="Quick disaster scenarios">
+            <button class="preset" data-mag="7.2" data-surge="0.4"><span class="preset-icon quake">⌁</span><span><strong>M7.2 earthquake</strong><small>High shaking · low surge</small></span><span class="preset-arrow">↗</span></button>
+            <button class="preset" data-mag="5.5" data-surge="2.6"><span class="preset-icon tide">≋</span><span><strong>King tide + surge</strong><small>Coastal inundation</small></span><span class="preset-arrow">↗</span></button>
+            <button class="preset" data-mag="5.5" data-surge="3.5"><span class="preset-icon tide">≈</span><span><strong>Tsunami pulse</strong><small>3.5 m water-level proxy</small></span><span class="preset-arrow">↗</span></button>
+            <button class="preset selected" data-mag="7.2" data-surge="2.2"><span class="preset-icon compound">✳</span><span><strong>Compound event</strong><small>Earthquake + king tide</small></span><span class="preset-arrow">↗</span></button>
+          </div>
+          <div class="section-rule"></div>
+          <div class="slider-heading"><label for="magnitude">EARTHQUAKE MAGNITUDE</label><output id="magnitudeValue">7.2</output></div>
+          <input id="magnitude" type="range" min="5.5" max="8" step="0.1" value="7.2" /><div class="range-ends"><span>M5.5</span><span>M8.0</span></div>
+          <div class="slider-heading surge-heading"><label for="surge">SURGE / TSUNAMI RUN-UP</label><output id="surgeValue">2.2 m</output></div>
+          <input id="surge" type="range" min="0" max="4" step="0.1" value="2.2" /><div class="range-ends"><span>0 m</span><span>4 m</span></div>
+          <div class="section-rule"></div>
+          <div class="budget-row"><div><label for="budget">CAPEX CEILING</label><small>Set a limit for the selected fixes</small></div><div class="budget-input"><span>$</span><input id="budget" type="number" min="0" max="500" value="150" aria-label="CapEx ceiling in millions of dollars" /><span>M</span></div></div>
+          <button id="optimizeBtn" class="primary-button"><span>✦</span><span>Optimize within budget</span><span>↗</span></button>
+          <button id="resetBtn" class="subtle-button">↺ &nbsp;Reset simulation</button>
+          <div class="side-footer"><span class="tiny-grid"></span><span>4,096 MONTE CARLO RUNS<br />DETERMINISTIC · LOCAL COMPUTE</span></div>
+        </aside>
+
+        <section class="scene-panel" aria-label="3D waterfront digital twin">
+          <div id="scene"></div>
+          <div id="sceneFallback" class="scene-fallback" hidden>3D rendering is unavailable in this browser. The risk simulation and retrofit planner remain available.</div>
+          <div class="scene-topline"><div class="scene-kicker"><span class="live-dot"></span> LIVE SIMULATION <span class="divider"></span> <span id="renderMode">LOADING 3D ENGINE</span></div><div class="map-pill">◎ &nbsp; 1 MILE STUDY RADIUS</div></div>
+          <div class="scene-title"><span>37.7955° N &nbsp; 122.3937° W</span><strong>SAN FRANCISCO <i>01</i></strong><small>DRAG TO ORBIT &nbsp; · &nbsp; SCROLL TO ZOOM</small></div>
+          <div id="selectedAsset" class="selected-asset"><span class="asset-icon">✳</span><div><small>FOCUSED FAILURE NODE</small><strong id="selectedAssetName">—</strong></div><span id="selectedAssetRisk">—</span></div>
+          <div class="scene-bottomline"><div class="legend"><span><i class="legend-buildings"></i>BUILDINGS</span><span><i class="legend-failures"></i>FAILURE NODES</span><span><i class="legend-water"></i>COASTAL WATER</span></div><div class="view-controls"><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="resetView" aria-label="Reset view">⌖</button></div></div>
+          <div class="scene-sources">GEOMETRY: DATA SF · INFRASTRUCTURE NODES: ILLUSTRATIVE</div>
+        </section>
+
+        <aside class="insights-panel panel">
+          <div class="insights-head"><span class="eyebrow">02 / RISK INTELLIGENCE</span><span id="runTime" class="run-time">READY</span></div>
+          <div class="risk-lede"><small>99% VALUE AT RISK · USD</small><div class="big-metric"><span id="varValue">—</span></div><div id="varDelta" class="metric-delta">Simulating…</div></div>
+          <div class="metric-pair"><div><small>EXPECTED SHORTFALL</small><strong id="cvarValue">—</strong><span>CVaR₀.₉₉ · USD M</span></div><div><small>EXPECTED CASUALTIES</small><strong id="casualtiesValue">—</strong><span>Modeled mean · people</span></div></div>
+          <div class="chart-heading"><div><span class="eyebrow">LOSS DISTRIBUTION</span><small>Baseline vs. selected fixes</small></div><div class="chart-key"><span class="before">BASE</span><span class="after">RESILIENT</span></div></div>
+          <div id="distribution" class="distribution-chart" role="img" aria-label="Loss distribution chart"></div>
+          <div class="chart-axis"><span>$0</span><span id="chartMid">$500M</span><span id="chartMax">$1B+</span></div>
+          <div class="section-rule"></div>
+          <div class="asset-list-heading"><span class="eyebrow">CASCADE EXPOSURE</span><span>FAILURE PROBABILITY</span></div>
+          <div id="nodeList" class="node-list"></div>
+          <div class="insight-footer"><span>✦</span><div><strong id="avoidedValue">—</strong><small>expected loss avoided with selected fixes</small></div></div>
+        </aside>
+      </main>
+
+      <section class="mitigation-section" aria-labelledby="fixesHeading"><div class="mitigation-head"><div><span class="eyebrow">03 / RESILIENCE PORTFOLIO</span><h2 id="fixesHeading">Block the cascade<span>.</span></h2><p>Engineering interventions ranked by modeled value. Toggle fixes to recalculate the scenario instantly.</p></div><div class="portfolio-summary"><div><small>SELECTED</small><strong id="selectedCount">0 <span>/ 20</span></strong></div><div><small>CAPEX COMMITTED</small><strong id="spentValue">$0M</strong></div><div><small>BENEFIT / COST</small><strong id="roiValue">—</strong></div></div></div>
+        <div class="fixes-toolbar"><div class="filters" role="group" aria-label="Filter retrofit category"><button class="filter active" data-category="All">All fixes <span>20</span></button><button class="filter" data-category="Civil">Civil</button><button class="filter" data-category="Hardware">Hardware</button><button class="filter" data-category="Software">Software</button></div><div class="toolbar-note">RANKED BY STANDALONE VaR REDUCTION ↓</div></div>
+        <div id="fixGrid" class="fix-grid"></div>
+      </section>
+
+      <footer class="footer"><div>ARGON RISK <span>·</span> CONCEPT DEMONSTRATION</div><div>Building geometry and roads: <a href="https://data.sf.gov/d/ynuv-fyni" target="_blank" rel="noreferrer">DataSF footprints</a> / <a href="https://data.sf.gov/d/3psu-pn9h" target="_blank" rel="noreferrer">streets</a> &nbsp; · &nbsp; Hazard context: <a href="https://www.usgs.gov/programs/earthquake-hazards/science/san-francisco-bay-area-liquefaction-hazard-maps" target="_blank" rel="noreferrer">USGS</a> / <a href="https://www.sfport.com/wrp/seismic-flood-101" target="_blank" rel="noreferrer">Port of SF</a></div></footer>
+    </div>
+    <dialog id="aboutDialog" class="about-dialog"><form method="dialog"><button class="close-dialog" aria-label="Close">×</button><span class="eyebrow">ABOUT THIS MODEL</span><h2>Built to explore, not certify.</h2><p>The 3D buildings and street centerlines come from public DataSF datasets. The coastline and bridge illustration are schematic. Hazard nodes, dependencies, failure curves, asset costs, casualty factors, and retrofit effects are illustrative assumptions created for this demo. They are not facility records or an engineering forecast.</p><p>The water slider is a simplified coastal water-level proxy for tide, surge, or tsunami run-up; it does not simulate wave physics or arrival time. The engine runs 4,096 seeded Monte Carlo samples in your browser and pairs baseline and mitigated draws. VaR₀.₉₉ is the 99th percentile modeled loss; CVaR₀.₉₉ is the average loss beyond that threshold. Each fix card shows its standalone modeled impact at the current hazard settings. ROI is modeled expected loss avoided divided by CapEx for this scenario, not an annualized return.</p><p>No blueprints, SCADA configurations, inspection videos, or live sensors are connected. An engineer would need verified asset inventories, fragility curves, exposure estimates, and calibration before using outputs for decisions.</p><button class="primary-button" value="close">Understood</button></form></dialog>
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
