@@ -35,11 +35,22 @@ The run fails, and writes nothing, if any invariant is violated.
 - `outcomes_tail`: same shape as `outcomes`, for the tail draw, so the frontend can toggle between "typical" and "1-in-100".
 
 `summary.json`
-- `archetypes[].fragility`: `{median_pga_g: [s1, s2, s3, s4], beta}`. These come from the built-in table for now.
-- `fixes[]`: `applies_to_nodes`, `applies_to_zones`, `effect` (`fragility_median_factor`, `flood_depth_factor`, `node_reduction_factor`), `rationale`.
+- `archetypes[].fragility`: `{median_pga_g: [s1, s2, s3, s4], beta, set_by}`. `set_by` is `"gemini"` when Argon's plan overrode the built-in value.
+- `plan`: `{source, proposed, rejected}`. `source` is `gemini` (live), `recorded` (replayed reply) or `fallback` (built-in fixes).
+- `fixes[]`: `applies_to_nodes`, `applies_to_zones`, `effect` (`fragility_median_factor`, `flood_depth_factor`, `node_reduction_factor`), `rationale`. Also `kind` (`building`, `flood` or `infrastructure`), `group_label` and `source`.
 - `by_combo[k].risk`: `expected_loss_usd`, `var99_usd`, `cvar99_usd` (buildings plus infrastructure), `building_expected_loss_usd`, `infrastructure_expected_loss_usd`, `node_failure_probs`.
 - `by_combo[k].cascade_trace`: `{p50, tail}`. Each is `{iteration, loss_usd, events: [{node_id, t_s, failed, blocked, cause, upstream}]}`, where `blocked` means the node failed in combo 0 but not here. `t_s` is in contract seconds: shaking-led failures at 8 s, surge-led failures at the wave's arrival at the node, plus 6 s per cascade step.
 - `network`: `nodes [{id, name, centroid_enu_m}]` and `edges [{from, to, weight}]`.
+
+## Where the fixes come from
+
+During its Fix Planning stage, the bake asks Argon (`gemini-4-argon`) for 5 fixes plus fragility overrides for any archetypes it wants to change. Gemini sees the scenario, archetype counts, flood-exposed neighborhoods and baseline node failure probabilities. Code validates every reply (`backend/argon/contract/plan.py`):
+- Kinds and target ids must exist.
+- Effects and costs are clamped.
+- Fragility medians must be strictly increasing.
+- A link is kept only if its domain is on the allowlist and it returned HTTP 200 during the bake.
+
+Weak-point groups are built from the fixes that protect buildings. With `ARGON_RECORD=1` the reply is saved to `backend/recordings/contract_<scenario>.json`. Without a key the bake replays that recording, which reproduces the same files. With no recording, it uses the 5 built-in fixes.
 
 ## Models (all illustrative)
 
@@ -54,6 +65,5 @@ The run fails, and writes nothing, if any invariant is violated.
 - The current `public/data/buildings.json` is the frontend's procedural placeholder (2,439 buildings). Its positions and elevations are not DataSF footprints, so damage results are only as real as that district. Run `npm run bake:real`, then `npm run bake:damage`.
 
 - The CGS Tsunami Hazard Area polygon is not used as the wet extent. Its ArcGIS service requires a token, so the extent comes from the heuristic above.
-- Gemini does not yet supply archetype fragility, fix text or rationale. All of these come from built-in tables, and every archetype is `evidence: "inferred"`.
 - Source links are the ones that returned HTTP 200 on 2026-10-25. The USGS and FEMA pages returned 403 to scripted checks and are left out.
 - The SSE stream does not yet carry these documents. They are baked files only.

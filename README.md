@@ -27,7 +27,7 @@ cp backend/.env.example backend/.env
 
 | Setting in `backend/.env` | Effect |
 |---|---|
-| `GEMINI_API_KEY=…` | The live `/api/runs` analysis calls Gemini to parse the prompt, propose fixes and write the narrative. |
+| `GEMINI_API_KEY=…` | `npm run bake:damage` asks Gemini for the fix plan. The live `/api/runs` analysis also uses it to parse the prompt, propose fixes and write the narrative. |
 | `ARGON_RECORD=1` | Saves every live Gemini reply to `backend/recordings/` for offline replay. |
 | `ARGON_AGENT=recorded` | Forces replay of recordings, even when a key is set. This is a safe setting for a live demo. |
 
@@ -48,7 +48,7 @@ npm run dev                          # frontend on http://localhost:5173; Vite p
   - Infrastructure fixes for the cascade network.
   - Checking a fix swaps every building to its mitigated state immediately. The p10–p90 loss range, VaR₀.₉₉ / CVaR₀.₉₉ and the p50 collapse count update with it.
 - **Typical / 1-in-100**: switches between the P50 realization and the realization nearest CVaR₀.₉₉.
-- **Architectural View**: replays the recorded backend run (`pipeline_events.json`) for its five stages, using the real messages and timings.
+- **Architectural View**: replays the recorded backend run (`pipeline_events.json`) for its five stages, using the real messages and timings, including the Gemini fix-planning call.
 - **Hover a building**: shows its id, damage state, mode (shaking or flood), height, ground elevation and footprint area.
 - **`D`**: debug overlay (FPS, draw calls, triangles, axes, wireframe). **`R`**: reset. The **camera button** switches between idle drift and free orbit.
 
@@ -58,8 +58,10 @@ If the damage files are missing or fail validation, the page falls back to the P
 
 ```bash
 npm run bake:real      # DataSF footprints + tall buildings + streets + NOAA datums -> public/models/district.glb, public/data/buildings.json
-npm run bake:damage    # backend Monte Carlo -> public/data/{scenario,buildings_damage,summary,pipeline_events}.json
+npm run bake:damage    # Gemini fix plan + backend Monte Carlo -> public/data/{scenario,buildings_damage,summary,pipeline_events}.json
 ```
+
+`bake:damage` asks Argon (`gemini-4-argon`) for the 5 fixes and for fragility overrides by building archetype. Code validates and clamps every reply, then simulates all 32 fix combinations. With `GEMINI_API_KEY` set it calls Gemini live, and with `ARGON_RECORD=1` it saves the reply to `backend/recordings/`. Without a key it replays that recording, which reproduces the same files, or falls back to 5 built-in fixes. Pass `-- --no-gemini` to skip the live call.
 
 Run `bake:damage` after every `bake:real`. The damage files are keyed to the building ids in `buildings.json`, and the frontend refuses mismatched ids. `npm run bake:placeholder` builds an offline procedural district instead.
 

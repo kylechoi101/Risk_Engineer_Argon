@@ -1,0 +1,144 @@
+{
+  "plan": {
+    "fixes": [
+      {
+        "id": "fix_seawall_floodwall",
+        "label": "Anchor and Raise Embarcadero Seawall",
+        "kind": "flood",
+        "applies_to_nodes": [
+          "seawall"
+        ],
+        "cost_usd": [
+          450000000,
+          680000000
+        ],
+        "flood_depth_factor": 0.35,
+        "node_reduction_factor": 0.25,
+        "rationale": "Jet-grouting liquefiable bay mud beneath the historic rock dike prevents lateral spreading during the M7.0 quake, while a raised parapet blocks the 4.15m king tide plus tsunami run-up.",
+        "group_label": "139 Waterfront Flood-Zone Buildings & Seawall",
+        "sources": [
+          {
+            "title": "Port of San Francisco Waterfront Resilience Program",
+            "url": "https://sfport.com/wrp"
+          }
+        ]
+      },
+      {
+        "id": "fix_fill_foundations",
+        "label": "Tie Down Foundations on Liquefiable Fill",
+        "kind": "building",
+        "applies_to_archetypes": [
+          "lowrise_fill",
+          "midrise_fill"
+        ],
+        "cost_usd_per_building": [
+          180000,
+          420000
+        ],
+        "fragility_median_factor": 1.65,
+        "rationale": "Installing micropiles, grade beams, and ground-improvement columns prevents differential settlement and shear failure in the 889 low- and mid-rise buildings sitting on historic bay fill.",
+        "group_label": "Low- and Mid-Rise Buildings on Liquefaction Fill (889 buildings)",
+        "sources": [
+          {
+            "title": "California Geological Survey Seismic Hazard Zones",
+            "url": "https://www.conservation.ca.gov/cgs/shzp"
+          }
+        ]
+      },
+      {
+        "id": "fix_firm_structural",
+        "label": "Brace Unreinforced Perimeters and Diaphragms",
+        "kind": "building",
+        "applies_to_archetypes": [
+          "lowrise_firm",
+          "midrise_firm",
+          "softstory_wood_lowrise"
+        ],
+        "cost_usd_per_building": [
+          95000,
+          240000
+        ],
+        "fragility_median_factor": 1.5,
+        "rationale": "Adding steel moment frames, parapet bracing, and plywood shear walls prevents first-story collapse and out-of-plane wall failure across the largest cluster of waterfront structures.",
+        "group_label": "Firm-Ground Low/Mid-Rise & Unretrofitted Soft-Story (2,170 buildings)",
+        "sources": [
+          {
+            "title": "SF Department of Building Inspection Soft Story Program",
+            "url": "https://sf.gov/departments/department-building-inspection"
+          }
+        ]
+      },
+      {
+        "id": "fix_natech_power_water",
+        "label": "Harden Substations, Fuel Lines, and Fire Pumps",
+        "kind": "infrastructure",
+        "applies_to_nodes": [
+          "substations",
+          "fuel_terminal",
+          "water_pump"
+        ],
+        "cost_usd": [
+          85000000,
+          140000000
+        ],
+        "node_reduction_factor": 0.2,
+        "rationale": "Base-isolating substation transformers, fitting flexible seismic shutoff valves on fuel tanks, and adding independent diesel generators to AWSS fire pumps breaks the post-earthquake fire ignition and suppression failure chain.",
+        "group_label": "Power, Fuel Handling & High-Pressure Fire Water Nodes",
+        "sources": [
+          {
+            "title": "USGS HayWired Scenario",
+            "url": "https://www.usgs.gov/programs/earthquake-hazards"
+          }
+        ]
+      },
+      {
+        "id": "fix_lifeline_transport",
+        "label": "Stabilize Ferry Berths, Bridge Ramps, and Comms",
+        "kind": "infrastructure",
+        "applies_to_nodes": [
+          "ferry_terminal",
+          "bridge_approach",
+          "evac_roads",
+          "comms"
+        ],
+        "cost_usd": [
+          70000000,
+          120000000
+        ],
+        "node_reduction_factor": 0.25,
+        "rationale": "Reinforcing ferry terminal batter piles, restraining bridge approach hinge joints, and hardening telecom battery backups preserves emergency evacuation corridors and maritime staging after shaking subsides.",
+        "group_label": "Ferry Terminal, Bridge Approach, Evac Roads & Comms",
+        "sources": [
+          {
+            "title": "FEMA Hazus Loss Estimation",
+            "url": "https://www.fema.gov/flood-maps/products-tools/hazus"
+          }
+        ]
+      }
+    ],
+    "archetypes": [
+      {
+        "id": "lowrise_fill",
+        "median_pga_g": [
+          0.13,
+          0.22,
+          0.38,
+          0.62
+        ],
+        "beta": 0.65,
+        "rationale": "A 25-second M7.0 duration triggers cyclic pore-pressure buildup in Embarcadero bay mud, causing foundation bearing loss at lower PGA thresholds than standard ground-shaking curves assume."
+      },
+      {
+        "id": "midrise_fill",
+        "median_pga_g": [
+          0.14,
+          0.24,
+          0.42,
+          0.7
+        ],
+        "beta": 0.65,
+        "rationale": "Mid-rise structures on fill experience amplified spectral accelerations alongside lateral ground deformation, lowering median collapse capacities and increasing dispersion."
+      }
+    ]
+  }
+}

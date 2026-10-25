@@ -8,6 +8,7 @@ import base64
 import math
 import time
 from collections import deque
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 import numpy as np
@@ -21,10 +22,10 @@ from argon.contract.model import (
     SOURCES,
     classify,
     envelope,
-    fixes,
     height_class,
     median_pga_g,
 )
+from argon.contract.plan import default_plan, validate_plan
 from argon.data.geo import ORIGIN, in_multipolygon, m_per_deg_lon
 from argon.engine.cascade import Scenario, cvar99, simulate_case
 from argon.engine.catalog import NODES, Fix
@@ -183,7 +184,13 @@ def _pct(values: np.ndarray) -> dict:
 
 def bake(snapshot: dict, neighborhoods: list[dict], buildings_input: dict | list,
          *, seed: int = 20261025, draws: int = 2000, magnitude: float = 7.0,
-         tide_ft_mllw: float = 7.0, run_up_m: float = 2.0) -> dict[str, object]:
+         tide_ft_mllw: float = 7.0, run_up_m: float = 2.0,
+         planner: Callable[[dict], tuple[str, dict] | None] | None = None,
+         url_ok: Callable[[str], bool] = lambda url: True) -> dict[str, object]:
+    """`planner(context)` asks Argon (Gemini) for the fix plan and returns (source, raw plan).
+
+    Its reply is validated by argon.contract.plan; on any failure the built-in plan is used.
+    """
     t0 = time.perf_counter()
     events: list[dict] = []
 
@@ -230,14 +237,53 @@ def bake(snapshot: dict, neighborhoods: list[dict], buildings_input: dict | list
                                 f"{level_navd88:.2f} m NAVD88 wets {wet_cells:,} grid cells and "
                                 f"{int((depth > WET_M).sum()):,} buildings")
 
-    # --- fix_planning: the five fixes and their bit positions
-    log("fix_planning", "running", "Selecting fixes and checking sources")
+    # --- fix_planning: Argon (Gemini) proposes fixes and fragility; code validates them
+    log("fix_planning", "running", "Asking Argon (Gemini) for fixes and archetype fragility"
+        if planner else "Selecting built-in fixes")
     counts = {a: int((archetype_idx == i).sum()) for i, a in enumerate(ARCHETYPE_IDS)}
     flood_zones = sorted({zones[z]["id"] for z in zone_idx[depth > WET_M]})
-    fix_list = fixes(counts, flood_zones)
+    surge_m = max(0.0, level_navd88 - snapshot["datums"]["mhhw_navd88_m"])
+    plan, note = None, "no planner configured"
+    if planner is not None:
+        baseline_nodes = simulate_case(Scenario(magnitude, surge_m, iterations=draws, seed=seed))
+        context = {
+            "recording_key": f"contract_m{magnitude:.1f}_tide{tide_ft_mllw:.1f}ft_runup{run_up_m:.1f}m",
+            "scenario": {"magnitude": magnitude, "duration_s": DURATION_S,
+                         "king_tide_ft_mllw": tide_ft_mllw, "tsunami_run_up_m": run_up_m,
+                         "water_level_m_navd88": round(level_navd88, 2),
+                         "buildings_wet": int((depth > WET_M).sum()), "buildings": n},
+            "archetypes": [{"id": a[0], "label": a[1], "count": counts[a[0]],
+                            "default_median_pga_g": a[5], "default_beta": a[6]} for a in ARCHETYPES],
+            "flood_zones": [zones[int(z[1:])]["label"] for z in flood_zones],
+            "nodes": [{"id": nd.id, "name": nd.name, "depends_on": nd.deps,
+                       "baseline_failure_prob": round(float(baseline_nodes.failed[:, i].mean()), 3)}
+                      for i, nd in enumerate(NODES)],
+        }
+        try:
+            reply = planner(context)
+            if reply:
+                plan = validate_plan(reply[1], counts, flood_zones, url_ok)
+                if plan:
+                    plan.source = reply[0]
+                else:
+                    note = "no proposed fix passed validation"
+            else:
+                note = "no Gemini reply or recording"
+        except Exception as exc:  # the demo must bake even when Gemini is unreachable
+            note = f"{type(exc).__name__}: {exc}"
+    if plan is None:
+        plan = default_plan(counts, flood_zones)
+    fix_list = plan.fixes
     f_count = len(fix_list)
     sourced = sum(f["evidence"] == "sourced" for f in fix_list)
-    log("fix_planning", "done", f"Selected {f_count} fixes; {sourced} with government sources")
+    if plan.source == "fallback":
+        log("fix_planning", "done", f"Using {f_count} built-in fixes ({note}); {sourced} with "
+                                    f"government sources")
+    else:
+        verb = "Gemini proposed" if plan.source == "gemini" else "Replayed recorded Gemini plan:"
+        log("fix_planning", "done", f"{verb} {plan.proposed} fixes; kept {f_count} fixes after "
+                                    f"validation, {sourced} with verified government sources; "
+                                    f"fragility set for {len(plan.archetypes)} archetypes")
 
     # --- monte_carlo: shared draws for every combo
     log("monte_carlo", "running", f"Running {draws:,} Monte Carlo draws for {2 ** f_count} fix combinations")
@@ -245,12 +291,13 @@ def bake(snapshot: dict, neighborhoods: list[dict], buildings_input: dict | list
     event_z = rng.standard_normal(draws)  # inter-event shaking variability, shared by buildings
     capacity_z = rng.standard_normal((draws, n))  # one draw per building per realization (CRN)
     pga = median_pga_g(magnitude, xy[:, 0], in_hazard)[None, :] * np.exp(0.3 * event_z)[:, None]
-    medians = np.array([a[5] for a in ARCHETYPES])[archetype_idx]  # (n, 4)
-    betas = np.array([a[6] for a in ARCHETYPES])[archetype_idx]
-    surge_m = max(0.0, level_navd88 - snapshot["datums"]["mhhw_navd88_m"])
-    node_fixes = {f["bit"]: Fix(f["id"], f["label"], "Civil", f["applies_to_nodes"][0], 0,
-                                f["effect"]["node_reduction_factor"])
-                  for f in fix_list if f["applies_to_nodes"]}
+    fragility = {a[0]: plan.archetypes.get(a[0], {"median_pga_g": a[5], "beta": a[6]})
+                 for a in ARCHETYPES}
+    medians = np.array([fragility[a]["median_pga_g"] for a in ARCHETYPE_IDS])[archetype_idx]  # (n, 4)
+    betas = np.array([fragility[a]["beta"] for a in ARCHETYPE_IDS])[archetype_idx]
+    node_fixes = {f["bit"]: [Fix(f"{f['id']}:{nid}", f["label"], "Civil", nid, 0,
+                                 f["effect"]["node_reduction_factor"]) for nid in f["applies_to_nodes"]]
+                  for f in fix_list if f["applies_to_nodes"] and "node_reduction_factor" in f["effect"]}
     zone_ids = np.array([z["id"] for z in zones])[zone_idx]
 
     combos = {}
@@ -272,7 +319,7 @@ def bake(snapshot: dict, neighborhoods: list[dict], buildings_input: dict | list
         state = np.maximum(shake, flood[None, :])
         building_loss = (LOSS_RATIOS[state] * value[None, :]).sum(axis=1)
         node_run = simulate_case(Scenario(magnitude, surge_m, iterations=draws, seed=seed),
-                                 [node_fixes[b] for b in node_fixes if combo >> b & 1])
+                                 [fx for b, fxs in node_fixes.items() if combo >> b & 1 for fx in fxs])
         combos[combo] = {"state": state, "shake": shake, "flood": flood, "loss": building_loss,
                          "node_run": node_run, "infra_loss": node_run.losses * 1e6}
     log("monte_carlo", "done", f"Ran {draws:,} Monte Carlo draws × {2 ** f_count} combinations "
@@ -344,12 +391,19 @@ def bake(snapshot: dict, neighborhoods: list[dict], buildings_input: dict | list
 
     mean_loss = (LOSS_RATIOS[base["state"]] * value[None, :]).mean(axis=0)
     collapse = (base["state"] == 4).mean(axis=0)
-    groups = [
-        ("g_waterfront_flood", "Low ground behind the seawall", depth > WET_M, "fix_seawall_strengthening"),
-        ("g_softstory", "Open soft-story wood buildings", archetype_idx == 0, "fix_softstory_retrofit"),
-        ("g_fill_lowmid", "Low and mid-rise buildings on fill",
-         np.isin(archetype_idx, [1, 3]), "fix_fill_ground_improvement"),
-    ]
+    # One weak-point group per fix that protects buildings: flood fixes cover the wet low
+    # ground, building fixes cover their archetypes. Infrastructure fixes have no group.
+    groups = []
+    archetype_names = np.array(ARCHETYPE_IDS)[archetype_idx]
+    for f in fix_list:
+        if "flood_depth_factor" in f["effect"]:
+            mask = depth > WET_M
+        elif f["applies_to_archetypes"]:
+            mask = np.isin(archetype_names, f["applies_to_archetypes"])
+        else:
+            continue
+        gid = "g_" + f["id"].removeprefix("fix_").removeprefix("gx_")
+        groups.append((gid, f.get("group_label") or f["label"], mask, f["id"]))
     fix_by_id = {f["id"]: f for f in fix_list}
     raw_scores = []
     weak = []
@@ -433,11 +487,16 @@ def bake(snapshot: dict, neighborhoods: list[dict], buildings_input: dict | list
     summary = {
         **header, "price_year": 2026, "zones": zones,
         "archetypes": [{"id": a[0], "label": a[1],
-                        "rationale": "Default archetype by height class, mapped hazard area and "
-                                     "soft-story status; year built and material are not in the data.",
+                        "rationale": plan.archetypes.get(a[0], {}).get("rationale") or
+                        "Default archetype by height class, mapped hazard area and "
+                        "soft-story status; year built and material are not in the data.",
                         "evidence": "inferred", "sources": [SOURCES["seismic_zones"]],
-                        "fragility": {"median_pga_g": a[5], "beta": a[6]}}  # v1.1
+                        "fragility": {"median_pga_g": fragility[a[0]]["median_pga_g"],  # v1.1
+                                      "beta": fragility[a[0]]["beta"],
+                                      "set_by": "gemini" if a[0] in plan.archetypes else "built-in"}}
                        for a in ARCHETYPES],
+        "plan": {"source": plan.source, "proposed": plan.proposed,  # v1.1: where the fixes came from
+                 "rejected": plan.rejected},
         "fixes": fix_list, "by_combo": by_combo, "weak_point_groups": weak, "hotspots": hotspots,
         "network": {  # v1.1: the natech cascade graph
             "nodes": [{"id": nd.id, "name": nd.name, "centroid_enu_m": nodes_enu[nd.id]} for nd in NODES],

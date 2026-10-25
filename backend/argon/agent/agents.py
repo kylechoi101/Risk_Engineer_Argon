@@ -14,12 +14,14 @@ from typing import Protocol
 from argon.agent.parse import parse_prompt
 from argon.agent.prompts import (
     HAZARD_JSON_SCHEMA,
+    contract_plan_prompt,
     fixes_prompt,
     narrative_prompt,
     parse_prompt_text,
     template_narrative,
 )
 from argon.agent.validate import FIX_JSON_SCHEMA
+from argon.contract.plan import PLAN_JSON_SCHEMA
 
 RECORDINGS_DIR = Path(__file__).resolve().parents[2] / "recordings"
 DEFAULT_MODEL = "gemini-4-argon"
@@ -34,26 +36,35 @@ class Agent(Protocol):
 
     def narrate(self, context: dict) -> AsyncIterator[str]: ...
 
+    async def plan_contract(self, context: dict) -> dict | None: ...
+
 
 def recording_key(context: dict) -> str:
     scenario = context["scenario"]
     return f"m{scenario['magnitude']:.1f}_tide{scenario['water_level']['ft_mllw']:.1f}ft"
 
 
-def _read_recording(directory: Path, context: dict) -> dict:
-    path = Path(directory) / f"{recording_key(context)}.json"
+def _read_named(directory: Path, key: str) -> dict:
     try:
-        return json.loads(path.read_text())
+        return json.loads((Path(directory) / f"{key}.json").read_text())
     except (OSError, ValueError):
         return {}
 
 
-def _write_recording(directory: Path, context: dict, **fields) -> None:
-    path = Path(directory) / f"{recording_key(context)}.json"
+def _write_named(directory: Path, key: str, **fields) -> None:
+    path = Path(directory) / f"{key}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = _read_recording(directory, context)
+    data = _read_named(directory, key)
     data.update(fields)
     path.write_text(json.dumps(data, indent=2))
+
+
+def _read_recording(directory: Path, context: dict) -> dict:
+    return _read_named(directory, recording_key(context))
+
+
+def _write_recording(directory: Path, context: dict, **fields) -> None:
+    _write_named(directory, recording_key(context), **fields)
 
 
 class RecordedAgent:
@@ -70,6 +81,9 @@ class RecordedAgent:
 
     async def propose_fixes(self, context: dict, max_fixes: int) -> list | None:
         return _read_recording(self.directory, context).get("fixes")
+
+    async def plan_contract(self, context: dict) -> dict | None:
+        return _read_named(self.directory, context["recording_key"]).get("plan")
 
     async def narrate(self, context: dict) -> AsyncIterator[str]:
         text = _read_recording(self.directory, context).get("narrative") or template_narrative(
@@ -120,6 +134,12 @@ class GeminiAgent:
         if self.record_dir is not None and fixes:
             _write_recording(self.record_dir, context, fixes=fixes)
         return fixes
+
+    async def plan_contract(self, context: dict) -> dict | None:
+        plan = await self._json(contract_plan_prompt(context), PLAN_JSON_SCHEMA)
+        if self.record_dir is not None and plan:
+            _write_named(self.record_dir, context["recording_key"], plan=plan)
+        return plan
 
     async def narrate(self, context: dict) -> AsyncIterator[str]:
         stream = await asyncio.wait_for(

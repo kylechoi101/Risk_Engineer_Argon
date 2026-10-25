@@ -96,3 +96,38 @@ def template_narrative(context: dict) -> str:
         f"${baseline['cvar99_m']:,.0f}M.{fix_text} This replay uses recorded analysis, and the "
         "model is a stylized demo, not an engineering estimate."
     )
+
+
+def contract_plan_prompt(context: dict) -> str:
+    """Ask for the five demo fixes plus archetype fragility, for the baked contract files."""
+    from argon.contract.plan import LIMITS, MAX_FIXES
+
+    return (
+        "You are Argon, a senior infrastructure risk engineer planning retrofits for a composite "
+        "earthquake + wave scenario on the San Francisco waterfront (1 mile around the Ferry "
+        "Building). Code will run a seeded Monte Carlo over every combination of your fixes; you "
+        "only choose the fixes and the fragility parameters.\n\n"
+        f"Return exactly {MAX_FIXES} fixes, mixing the kinds:\n"
+        "- kind 'flood' (seawall / floodwall / barrier): set flood_depth_factor (fraction of flood "
+        f"depth left, {LIMITS['flood_depth_factor'][0]}-{LIMITS['flood_depth_factor'][1]}), cost_usd "
+        "[low, high] total, and optionally applies_to_nodes ['seawall'] with node_reduction_factor.\n"
+        "- kind 'building': applies_to_archetypes (ids below), fragility_median_factor (how much "
+        f"stronger, {LIMITS['fragility_median_factor'][0]}-{LIMITS['fragility_median_factor'][1]}), "
+        "cost_usd_per_building [low, high].\n"
+        "- kind 'infrastructure': applies_to_nodes (ids below), node_reduction_factor "
+        f"({LIMITS['node_reduction_factor'][0]}-{LIMITS['node_reduction_factor'][1]}), cost_usd total.\n"
+        "Target what drives the most loss: many buildings, high node failure probabilities, the "
+        "fuel-fire natech chain. Use realistic 2026 USD. label is a short imperative title; "
+        "group_label names the buildings it protects; rationale is one or two plain sentences on "
+        "the failure mechanism it blocks.\n"
+        "sources: only real, existing government pages (sf.gov, sfport.com, sfdbi.org, "
+        "data.sf.gov, conservation.ca.gov, usgs.gov, fema.gov, tidesandcurrents.noaa.gov). Leave "
+        "the list empty rather than guess a URL; unverifiable links are discarded.\n\n"
+        "Also return archetypes: for any archetype whose default fragility you would change, its "
+        "lognormal median PGA in g for damage states slight, moderate, extensive, complete "
+        "(4 strictly increasing values) and beta.\n\n"
+        f"Scenario: {json.dumps(context['scenario'])}\n"
+        f"Archetypes: {json.dumps(context['archetypes'])}\n"
+        f"Flood-exposed neighborhoods: {json.dumps(context['flood_zones'])}\n"
+        f"Infrastructure network: {json.dumps(context['nodes'])}\n"
+    )

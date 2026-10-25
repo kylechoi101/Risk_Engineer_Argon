@@ -65,3 +65,58 @@ def test_reads_the_frontend_bake_shape_and_never_rewrites_it(docs):
     district = small_district()
     assert docs["buildings.json"] == district  # passed through untouched, only used for checks
     assert docs["buildings_damage.json"]["building_ids"] == [b["id"] for b in district["buildings"]]
+
+
+GEMINI_PLAN = {
+    "fixes": [
+        {"id": "embarcadero floodwall", "label": "Raise the Embarcadero floodwall", "kind": "flood",
+         "applies_to_nodes": ["seawall"], "cost_usd": [80e6, 120e6], "flood_depth_factor": 0.3,
+         "node_reduction_factor": 0.4, "rationale": "Keeps the wave off low ground.",
+         "group_label": "Waterfront low ground",
+         "sources": [{"title": "Port WRP", "url": "https://www.sfport.com/wrp"}]},
+        {"id": "fill retrofit", "label": "Deep soil mixing under fill", "kind": "building",
+         "applies_to_archetypes": ["lowrise_fill", "midrise_fill"], "cost_usd_per_building": [2e5, 4e5],
+         "fragility_median_factor": 1.5, "rationale": "Stops settlement.", "sources": []},
+        {"id": "grid", "label": "Island the waterfront substations", "kind": "infrastructure",
+         "applies_to_nodes": ["substations"], "cost_usd": [20e6, 30e6], "node_reduction_factor": 0.5,
+         "rationale": "Keeps pumps powered.", "sources": []},
+    ],
+    "archetypes": [{"id": "lowrise_fill", "median_pga_g": [0.13, 0.24, 0.42, 0.7], "beta": 0.65,
+                    "rationale": "Fill amplifies and settles."}],
+}
+
+
+def planning_messages(docs):
+    return [e["message"] for e in docs["pipeline_events.json"]
+            if e["node"] == "fix_planning" and e["status"] == "done"]
+
+
+def test_bake_uses_a_validated_gemini_plan(tmp_path):
+    seen = {}
+
+    def planner(context):
+        seen.update(context)
+        return "gemini", GEMINI_PLAN
+
+    docs = bake(load_snapshot(), HOODS, small_district(), draws=100, planner=planner)
+    assert violations(docs) == []
+    summary = docs["summary.json"]
+    assert [f["id"] for f in summary["fixes"]] == ["gx_embarcadero_floodwall", "gx_fill_retrofit", "gx_grid"]
+    assert {g["fix_id"] for g in summary["weak_point_groups"]} <= {f["id"] for f in summary["fixes"]}
+    fill = next(a for a in summary["archetypes"] if a["id"] == "lowrise_fill")
+    assert fill["fragility"]["median_pga_g"] == [0.13, 0.24, 0.42, 0.7]
+    assert fill["rationale"] == "Fill amplifies and settles."
+    assert seen["recording_key"].startswith("contract_m7.0") and {a["id"] for a in seen["archetypes"]}
+    planning = planning_messages(docs)
+    assert "Gemini" in planning[0] and "3 fixes" in planning[0]
+
+
+def test_bake_falls_back_to_built_in_fixes_when_the_planner_fails():
+    def planner(context):
+        raise TimeoutError("gemini timed out")
+
+    docs = bake(load_snapshot(), HOODS, small_district(), draws=100, planner=planner)
+    assert violations(docs) == []
+    assert docs["summary.json"]["fixes"][0]["id"] == "fix_seawall_strengthening"
+    planning = planning_messages(docs)
+    assert "built-in" in planning[0] and "timed out" in planning[0]

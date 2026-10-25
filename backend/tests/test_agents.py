@@ -68,3 +68,23 @@ def test_gemini_agent_parses_json_streams_text_and_records(tmp_path):
 ])
 def test_make_agent_picks_mode_from_env(env, expected, tmp_path):
     assert make_agent(env, recordings=tmp_path).mode == expected
+
+
+PLAN_CONTEXT = {"recording_key": "contract_m7.0_tide7.0ft_runup2.0m", "scenario": {"magnitude": 7.0},
+                "archetypes": [], "flood_zones": [], "nodes": []}
+
+
+def test_gemini_agent_plans_the_contract_and_records_it(tmp_path):
+    models = FakeModels()
+    agent = GeminiAgent(SimpleNamespace(aio=SimpleNamespace(models=models)), record_dir=tmp_path)
+    plan = asyncio.run(agent.plan_contract(PLAN_CONTEXT))
+    assert plan == {"fixes": [FIX]}
+    saved = json.loads((tmp_path / "contract_m7.0_tide7.0ft_runup2.0m.json").read_text())
+    assert saved == {"plan": {"fixes": [FIX]}}
+
+
+def test_recorded_agent_replays_a_contract_plan_or_returns_none(tmp_path):
+    agent = RecordedAgent(tmp_path, delay_s=0)
+    assert asyncio.run(agent.plan_contract(PLAN_CONTEXT)) is None
+    (tmp_path / "contract_m7.0_tide7.0ft_runup2.0m.json").write_text(json.dumps({"plan": {"fixes": []}}))
+    assert asyncio.run(agent.plan_contract(PLAN_CONTEXT)) == {"fixes": []}

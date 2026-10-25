@@ -91,7 +91,8 @@ def fixes(archetype_counts: dict[str, int], flood_zones: list[str]) -> list[dict
     soft = archetype_counts.get("softstory_wood_lowrise", 0)
     fill = archetype_counts.get("lowrise_fill", 0) + archetype_counts.get("midrise_fill", 0)
     return [
-        {"id": "fix_seawall_strengthening", "bit": 0,
+        {"id": "fix_seawall_strengthening", "bit": 0, "kind": "flood",
+         "group_label": "Low ground behind the seawall",
          "label": "Strengthen and raise the Embarcadero seawall",
          "applies_to_archetypes": [], "applies_to_nodes": ["seawall"], "applies_to_zones": flood_zones,
          "cost_usd": [50e6, 80e6], "evidence": "sourced",
@@ -99,7 +100,8 @@ def fixes(archetype_counts: dict[str, int], flood_zones: list[str]) -> list[dict
          "effect": {"flood_depth_factor": 0.4, "node_reduction_factor": 0.45},
          "rationale": "Limits seawall slumping and overtopping, which cuts flood depth behind the wall "
                       "and the outages that start there."},
-        {"id": "fix_softstory_retrofit", "bit": 1,
+        {"id": "fix_softstory_retrofit", "bit": 1, "kind": "building",
+         "group_label": "Open soft-story wood buildings",
          "label": "Finish soft-story retrofits still open",
          "applies_to_archetypes": ["softstory_wood_lowrise"], "applies_to_nodes": [], "applies_to_zones": [],
          "cost_usd": [soft * 100e3, soft * 200e3], "evidence": "sourced",
@@ -107,7 +109,8 @@ def fixes(archetype_counts: dict[str, int], flood_zones: list[str]) -> list[dict
          "effect": {"fragility_median_factor": 1.8},
          "rationale": "Steel moment frames or shear walls at the open ground floor roughly double the "
                       "shaking these buildings tolerate."},
-        {"id": "fix_fill_ground_improvement", "bit": 2,
+        {"id": "fix_fill_ground_improvement", "bit": 2, "kind": "building",
+         "group_label": "Low and mid-rise buildings on fill",
          "label": "Ground improvement under low and mid-rise buildings on fill",
          "applies_to_archetypes": ["lowrise_fill", "midrise_fill"], "applies_to_nodes": [],
          "applies_to_zones": [],
@@ -116,13 +119,13 @@ def fixes(archetype_counts: dict[str, int], flood_zones: list[str]) -> list[dict
          "effect": {"fragility_median_factor": 1.35},
          "rationale": "Compaction grouting or deep soil mixing limits liquefaction settlement under "
                       "shallow foundations."},
-        {"id": "fix_substation_isolation", "bit": 3,
+        {"id": "fix_substation_isolation", "bit": 3, "kind": "infrastructure",
          "label": "Base-isolate waterfront substation transformers",
          "applies_to_archetypes": [], "applies_to_nodes": ["substations"], "applies_to_zones": [],
          "cost_usd": [26e6, 38e6], "evidence": "inferred", "sources": [],
          "effect": {"node_reduction_factor": 0.5},
          "rationale": "Keeps power on for pumps and communications, which blocks most of the cascade."},
-        {"id": "fix_fuel_shutoffs", "bit": 4,
+        {"id": "fix_fuel_shutoffs", "bit": 4, "kind": "infrastructure",
          "label": "Flexible joints and seismic shutoffs at the fuel terminal",
          "applies_to_archetypes": [], "applies_to_nodes": ["fuel_terminal"], "applies_to_zones": [],
          "cost_usd": [19e6, 29e6], "evidence": "inferred", "sources": [],
